@@ -472,6 +472,15 @@ class CRM_Core_BAO_MessageTemplate extends CRM_Core_DAO_MessageTemplate {
     $contactID = CRM_Utils_Array::value('contactId', $params);
 
     if ($contactID) {
+      // patch-localized-templates
+      global $tsLocale;
+      $tmpTsLocale = $tsLocale;
+      $query1 = "SELECT preferred_language FROM civicrm_contact WHERE id = %1";
+      $params1 = array(1 => array($contactID, 'Integer'));
+      $preferred_language = CRM_Core_DAO::singleValueQuery($query1, $params1);
+      if ($preferred_language) {
+        $tsLocale = $preferred_language;
+      }
       $contactParams = ['contact_id' => $contactID];
       $returnProperties = [];
 
@@ -593,6 +602,9 @@ class CRM_Core_BAO_MessageTemplate extends CRM_Core_DAO_MessageTemplate {
       }
 
       $sent = CRM_Utils_Mail::send($params);
+      if ($tmpTsLocale) {
+        $tsLocale = $tmpTsLocale;
+      }
 
       if ($pdf_filename) {
         unlink($pdf_filename);
