@@ -152,6 +152,8 @@ class rcube_html2text
         '/<br[^>]*>/i',                          // <br>
         '/<i[^>]*>(.*?)<\/i>/i',                 // <i>
         '/<em[^>]*>(.*?)<\/em>/i',               // <em>
+        '/<b[^>]*>(.*?)<\/b>/i',                 // <b>
+        '/<strong[^>]*>(.*?)<\/strong>/i',       // <strong>
         '/(<ul[^>]*>|<\/ul>)/i',                 // <ul> and </ul>
         '/(<ol[^>]*>|<\/ol>)/i',                 // <ol> and </ol>
         '/<li[^>]*>(.*?)<\/li>/i',               // <li> and </li>
@@ -179,6 +181,8 @@ class rcube_html2text
         "\n",                                   // <br>
         '_\\1_',                                // <i>
         '_\\1_',                                // <em>
+        '*\\1*',                                // <b>
+        '*\\1*',                                // <strong>
         "\n\n",                                 // <ul> and </ul>
         "\n\n",                                 // <ol> and </ol>
         "\t* \\1\n",                            // <li> and </li>
@@ -249,8 +253,6 @@ class rcube_html2text
     protected $callback_search = array(
         '/<(a) [^>]*href=("|\')([^"\']+)\2[^>]*>(.*?)<\/a>/i', // <a href="">
         '/<(h)[123456]( [^>]*)?>(.*?)<\/h[123456]>/i',         // h1 - h6
-        '/<(b)( [^>]*)?>(.*?)<\/b>/i',                         // <b>
-        '/<(strong)( [^>]*)?>(.*?)<\/strong>/i',               // <strong>
         '/<(th)( [^>]*)?>(.*?)<\/th>/i',                       // <th> and </th>
     );
 
@@ -645,9 +647,6 @@ class rcube_html2text
     public function tags_preg_callback($matches)
     {
         switch (strtolower($matches[1])) {
-        case 'b':
-        case 'strong':
-            return $this->_toupper($matches[3]);
         case 'th':
             return $this->_toupper("\t\t". $matches[3] ."\n");
         case 'h':
