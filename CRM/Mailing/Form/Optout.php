@@ -74,7 +74,7 @@ class CRM_Mailing_Form_Optout extends CRM_Core_Form {
     $buttons = [
       [
         'type' => 'next',
-        'name' => ts('Opt Out'),
+        'name' => ts('Confirm'),
         'isDefault' => TRUE,
       ],
       [
