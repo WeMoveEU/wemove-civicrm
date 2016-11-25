@@ -645,7 +645,7 @@ ORDER BY   i.contact_id, i.{$tempColumn}
     $patterns[] = '\\\\\{\w+\.\w+\\\\\}|\{\{\w+\.\w+\}\}';
     $patterns[] = '\{\w+\.\w+\}';
 
-    $patterns = '{' . implode('|', $patterns) . '}im';
+    $patterns = '{' . implode('|', $patterns) . '}imu';
 
     return $patterns;
   }
