@@ -39,4 +39,7 @@ CKEDITOR.editorConfig = function( config ) {
 	config.removeDialogTabs = 'image:advanced;link:advanced';
 	config.basicEntities = false;
 	config.allowedContent = true;
+
+        config.basicEntities = false;
+        config.startupMode = 'source';
 };
