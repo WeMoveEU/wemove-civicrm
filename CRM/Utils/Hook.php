@@ -2668,6 +2668,19 @@ abstract class CRM_Utils_Hook {
   }
 
   /**
+   * This hook is called before CRM_Mailing_BAO_TrackableURL::getTrackerURL().
+   *
+   * @param string $url
+   * @param array $params
+   *
+   * @return mixed
+   */
+  public static function alterUrl(&$url, $params) {
+    return self::singleton()
+      ->invoke(2, $url, $params, self::$_nullObject, self::$_nullObject, self::$_nullObject, self::$_nullObject, 'civicrm_alterUrl');
+  }
+
+  /**
    * Allow extensions to modify the array of acceptable fields to be included on profiles
    * @param array $fields
    *   format is [Entity => array of DAO fields]
