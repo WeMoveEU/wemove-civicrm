@@ -1367,6 +1367,7 @@ ORDER BY   civicrm_email.is_bulkmail DESC
     }
     elseif ($type == 'url') {
       if ($this->url_tracking) {
+        CRM_Utils_Hook::alterUrl($token, array('id' => $this->id, 'campaign_id' => $this->campaign_id, 'event_queue_id' => $event_queue_id));
         $data = CRM_Mailing_BAO_TrackableURL::getTrackerURL($token, $this->id, $event_queue_id);
         if (!empty($html)) {
           $data = htmlentities($data, ENT_NOQUOTES);
