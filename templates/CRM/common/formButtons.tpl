@@ -37,8 +37,9 @@
         {/if}
         {crmGetAttribute html=$html attr='crm-icon' assign='icon'}
         {crmGetAttribute html=$html attr='disabled' assign='disabled'}
-        <span class="crm-button crm-button-type-{$key|crmBtnType} crm-button{$key}{if $icon} crm-icon-button{/if}{if $disabled} crm-button-disabled{/if}"{if $buttonStyle} style="{$buttonStyle}"{/if}>
-          {if $icon}<span class="crm-button-icon ui-icon-{$icon}"> </span>{/if}
+        <span class="btn btn-lg btn-primary xavcrm-button crm-button-type-{$key|crmBtnType} xavcrm-button{$key}{if $icon} crm-icon-button{/if}{if $disabled} crm-button-disabled{/if}"{if $buttonStyle} style="{$buttonStyle}"{/if}>
+          {if $icon and $icon neq "check"}<span class="crm-button-icon ui-icon-{$icon}"> </span>{/if}
+          {if $icon eq "check"}<span aria-hidden="true" class="glyphicon glyphicon-ok"></span>{/if}
           {$html}
         </span>
     {/if}
