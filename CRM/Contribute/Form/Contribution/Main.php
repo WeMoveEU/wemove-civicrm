@@ -1120,6 +1120,9 @@ class CRM_Contribute_Form_Contribution_Main extends CRM_Contribute_Form_Contribu
       $errors['payment_processor_id'] = ts('Payment Method is a required field.');
     }
     else {
+      if (!empty($self->_paymentFields)) {
+	CRM_Core_Form::validateMandatoryFields($self->_paymentFields, $fields, $errors);
+      }
       CRM_Core_Payment_Form::validatePaymentInstrument(
         $fields['payment_processor_id'],
         $fields,
