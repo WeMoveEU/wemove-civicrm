@@ -74,8 +74,10 @@ class CRM_Utils_Mail {
       // CRM-7510
       $params['timeout'] = 30;
 
-      // CRM-9349
-      $params['persist'] = TRUE;
+      // CRM-9349 (constant check added for WeMove)
+      if (!defined('CIVICRM_MAILER_TRANSIENT') || !CIVICRM_MAILER_TRANSIENT) {
+        $params['persist'] = TRUE;
+      }
 
       $mailer = self::_createMailer('smtp', $params);
     }
