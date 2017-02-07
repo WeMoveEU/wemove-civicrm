@@ -100,6 +100,7 @@ class CRM_Core_ScheduledJob {
     }
 
     // run_frequency check
+    $format = '';
     switch ($this->run_frequency) {
       case 'Always':
         return TRUE;
@@ -122,12 +123,19 @@ class CRM_Core_ScheduledJob {
         break;
 
       case 'Daily':
-        $offset = '+1 day';
+        $format = 'Ymd';
         break;
 
       case 'Hourly':
-        $offset = '+1 hour';
+        $format = 'YmdH';
         break;
+    }
+
+    if ($format) {
+      $now = CRM_Utils_Date::currentDBDate();
+      $lastTime = date($format, strtotime($this->last_run));
+      $thisTime = date($format, strtotime($now));
+      return ($lastTime <> $thisTime);
     }
 
     $now = strtotime(CRM_Utils_Date::currentDBDate());
