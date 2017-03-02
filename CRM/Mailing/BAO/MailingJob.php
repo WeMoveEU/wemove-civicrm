@@ -99,8 +99,8 @@ class CRM_Mailing_BAO_MailingJob extends CRM_Mailing_DAO_MailingJob {
       // Select the first child job that is scheduled
       // CRM-6835
       $query = "
-      SELECT   j.*
-        FROM   $jobTable     j,
+      SELECT   j.*, m.mailing_type
+        FROM   $jobTable j,
            $mailingTable m
        WHERE   m.id = j.mailing_id AND m.domain_id = {$domainID}
                      {$modeClause}
@@ -174,6 +174,14 @@ class CRM_Mailing_BAO_MailingJob extends CRM_Mailing_DAO_MailingJob {
       }
       elseif ($mode == 'sms') {
         $mailer = CRM_SMS_Provider::singleton(['mailing_id' => $job->mailing_id]);
+      }
+
+      if (defined('CIVICRM_MAILING_ABSYNC') && CIVICRM_MAILING_ABSYNC) {
+        // If this is an AB test and config allows several mailer jobs,
+        // make sure A and B are sent in parralel
+        if ($job->mailing_type == 'experiment' && Civi::settings()->get('mailerJobsMax') > 1) {
+          $job->waitForOtherVariant();
+        }
       }
 
       // Compose and deliver each child job
@@ -467,6 +475,42 @@ VALUES (%1, %2, %3, %4, %5, %6, %7)
       if (!empty($params)) {
         CRM_Mailing_Event_BAO_Queue::bulkCreate($params, $now);
       }
+    }
+  }
+
+  /**
+   * Waits until a job for the other version of this AB job has status Running
+   * and then returns
+   */
+  public function waitForOtherVariant() {
+    $abTest = CRM_Mailing_BAO_MailingAB::getABTest($this->mailing_id);
+    if ($abTest->mailing_id_a == $this->mailing_id) {
+      $otherMailingId = $abTest->mailing_id_b;
+    } else {
+      $otherMailingId = $abTest->mailing_id_a;
+    }
+
+    if ($otherMailingId) {
+      $jobTable = CRM_Mailing_DAO_MailingJob::getTableName();
+      // Status complete accepted as well in case the experiment is small
+      // and was delivered in less than sleeping time
+      $query = "
+        SELECT j.id, j.mailing_id
+        FROM $jobTable j
+        WHERE j.mailing_id = $otherMailingId
+          AND j.is_test = 0
+          AND (j.status = 'Running' OR j.status = 'Complete')
+          AND j.job_type = 'child'
+      ";
+
+      $job = new CRM_Mailing_BAO_MailingJob();
+      $job->query($query);
+      CRM_Core_Error::debug_log_message("Experiment $this->mailing_id waiting for $otherMailingId");
+      while (!$job->fetch()) {
+        sleep(10);
+        $job->query($query);
+      }
+      CRM_Core_Error::debug_log_message("Experiment $this->id ($this->mailing_id) / $job->id ($job->mailing_id) can start");
     }
   }
 
