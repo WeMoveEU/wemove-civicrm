@@ -3,7 +3,9 @@
 * git checkout master
 * git checkout -b civicrm-VERSION.vanilla
 * wget VERSION
+    * wget https://download.civicrm.org/civicrm-4.7.17-drupal.tar.gz
 * unzip
+    * tar -xvzf civicrm-4.7.17-drupal.tar.gz
 * git add *
 * git commit -m "CiviCRM VERSION Vanilla"
 * git push origin civicrm-VERSION.vanilla
