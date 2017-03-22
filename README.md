@@ -27,3 +27,12 @@ Example for editing Mailing.php class
 * git cherry-pick df56948ac66bffa540854de4c2148d64da7f155d   // commit hash
 * git push origin civicrm-4.6.23.patched
 
+
+# How to add patches to new clean patched branch
+
+There're several possibilities how to add our custom patches.
+
+* open list of commits of current patched branch. This will be a checklist what you have to check.
+* git checkout civicrm-VERSION.patched
+* git cherry-pick HASH-COMMIT  // choose hash from list of commits from current branch
+
