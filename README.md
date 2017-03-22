@@ -48,3 +48,11 @@ Installing the latest developmental code requires some [special steps](http://wi
 
 Report all issues to CiviCRM via GitLab:
 https://lab.civicrm.org
+
+
+Fix after upgrade to 4.7.17
+---------------------------
+
+cd /var/www/drupal/sites/default/files
+sudo mkdir civicrm && cd civicrm && sudo mkdir persist && cd persist
+sudo ln -s /var/www/drupal/sites/wemove/files/civicrm/persist/crm-ckeditor-default.js crm-ckeditor-default.js
