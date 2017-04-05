@@ -486,26 +486,28 @@ VALUES (%1, %2, %3, %4, %5, %6, %7)
       $otherMailingId = $abTest->mailing_id_a;
     }
 
-    $jobTable = CRM_Mailing_DAO_MailingJob::getTableName();
-    // Status complete accepted as well in case the experiment is small
-    // and was delivered in less than sleeping time
-    $query = "
-      SELECT j.id, j.mailing_id
-	FROM $jobTable j
-       WHERE j.mailing_id = $otherMailingId
-	 AND j.is_test = 0
-	 AND (j.status = 'Running' OR j.status = 'Complete')
-	 AND j.job_type = 'child'
-    ";
+    if ($otherMailingId) {
+      $jobTable = CRM_Mailing_DAO_MailingJob::getTableName();
+      // Status complete accepted as well in case the experiment is small
+      // and was delivered in less than sleeping time
+      $query = "
+        SELECT j.id, j.mailing_id
+        FROM $jobTable j
+        WHERE j.mailing_id = $otherMailingId
+          AND j.is_test = 0
+          AND (j.status = 'Running' OR j.status = 'Complete')
+          AND j.job_type = 'child'
+      ";
 
-    $job = new CRM_Mailing_BAO_MailingJob();
-    $job->query($query);
-    CRM_Core_Error::debug_log_message("Experiment $this->mailing_id waiting for $otherMailingId");
-    while (!$job->fetch()) {
-      sleep(10);
+      $job = new CRM_Mailing_BAO_MailingJob();
       $job->query($query);
+      CRM_Core_Error::debug_log_message("Experiment $this->mailing_id waiting for $otherMailingId");
+      while (!$job->fetch()) {
+        sleep(10);
+        $job->query($query);
+      }
+      CRM_Core_Error::debug_log_message("Experiment $this->id ($this->mailing_id) / $job->id ($job->mailing_id) can start");
     }
-    CRM_Core_Error::debug_log_message("Experiment $this->id ($this->mailing_id) / $job->id ($job->mailing_id) can start");
   }
 
   /**
