@@ -1543,7 +1543,7 @@ class Smarty
         }
 
         $isValid = false;
-        if ( $fd = @fopen( $compilePath, 'wb') ) {
+        if ( $fd = @fopen( $compilePath, 'c') ) {
             $isValid = true;
             @fclose( $fd );
             @unlink($compilePath);
