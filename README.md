@@ -2,6 +2,7 @@
 
 * git checkout master
 * git checkout -b civicrm-VERSION.vanilla
+* git clean -f -d
 * wget VERSION
     * wget https://download.civicrm.org/civicrm-4.7.20-drupal.tar.gz
 * unzip
@@ -39,9 +40,12 @@ Example for editing Mailing.php class
 
 There're several possibilities how to add our custom patches.
 
-* open list of commits of current patched branch. This will be a checklist what you have to check.
+* git checkout civicrm-PREVIOUS-VERSION.patched
+* open list of commits of current patched branch
     * `git log` on separate console window
+    * copy the list to text editor, will be a checklist what you have to check
 * git checkout civicrm-VERSION.patched
 * git cherry-pick HASH-COMMIT  // choose hash from list of commits from current branch
     * `git cherry-pick --abort` in case of conflict (patch could be already merged in VERSION)
+    * `git reset` in case of commit already patched in core
 
