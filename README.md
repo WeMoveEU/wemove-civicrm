@@ -14,8 +14,7 @@
 * git commit -m "CiviCRM VERSION Vanilla"
 * git push origin civicrm-VERSION.vanilla
 * git checkout -b civicrm-VERSION.patched
-* git push origin civicrm-VERSION.patched
-
+* git push -u origin civicrm-VERSION.patched
 
 # How to create new patch
 
@@ -28,6 +27,9 @@ Example for editing Mailing.php class
 * git push origin patch.crm-19236
 * git log -1    // in order to display commit hash
 * git checkout civicrm-4.7.20.patched
+* git fetch
+* git status
+* git pull origin civicrm-4.7.20.patched // only when needed
 * git cherry-pick df56948ac66bffa540854de4c2148d64da7f155d   // commit hash
 * git push origin civicrm-4.7.20.patched
 
