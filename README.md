@@ -43,11 +43,14 @@ Example for editing Mailing.php class
 There're several possibilities how to add our custom patches.
 
 * git checkout civicrm-PREVIOUS-VERSION.patched
+* git fetch, git pull
 * open list of commits of current patched branch
     * `git log` on separate console window
     * copy the list to text editor, will be a checklist what you have to check
+    * apply patches starting from the oldest to the newest
 * git checkout civicrm-VERSION.patched
 * git cherry-pick HASH-COMMIT  // choose hash from list of commits from current branch
+    * `git cherry-pick --continue` after fixing known conflicts
     * `git cherry-pick --abort` in case of conflict (patch could be already merged in VERSION)
     * `git reset` in case of commit already patched in core
 
