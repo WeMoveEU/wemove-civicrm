@@ -3,18 +3,17 @@
 * git checkout master
 * git checkout -b civicrm-VERSION.vanilla
 * git clean -f -d
-* wget VERSION
-    * wget https://download.civicrm.org/civicrm-4.7.20-drupal.tar.gz
-* unzip
-    * tar -xvzf civicrm-4.7.20-drupal.tar.gz
+* wget https://download.civicrm.org/civicrm-4.7.20-drupal.tar.gz
+* tar -xvzf civicrm-4.7.20-drupal.tar.gz
 * copy files from unzipped subdirectory
     * rm civicrm-4.7.20-drupal.tar.gz
     * cd civicrm/ && mv * ../ && cd .. && rm civicrm/ -R
 * git add *
 * git commit -m "CiviCRM VERSION Vanilla"
-* git push origin civicrm-VERSION.vanilla
+* git push -u origin civicrm-VERSION.vanilla
 * git checkout -b civicrm-VERSION.patched
 * git push -u origin civicrm-VERSION.patched
+* add patches, look at below...
 
 # How to create new patch
 
