@@ -1,6 +1,6 @@
 # How to add new version of civicrm to repository
 
-* # copy to text editor, replace VERSION with 5.3.2, copy commands to terminal & Engage!
+* \# copy to text editor, replace VERSION with 5.3.2, copy commands to terminal & Engage!
 * git checkout master
 * git checkout -b civicrm-VERSION.vanilla
 * git clean -f -d
@@ -13,7 +13,7 @@
 * git push -u origin civicrm-VERSION.vanilla
 * git checkout -b civicrm-VERSION.patched
 * git push -u origin civicrm-VERSION.patched
-* # add patches, look at below...
+* \# add patches, look at below...
 
 # How to create new patch
 
