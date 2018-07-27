@@ -44,8 +44,9 @@ There're several possibilities how to add our custom patches.
 * git checkout civicrm-PREVIOUS-VERSION.patched
 * git fetch, git pull
 * open list of commits of current patched branch
-    * `git log` on separate console window
+    * `git log --reverse` on separate console window
     * copy the list to text editor, will be a checklist what you have to check
+        * replace `commit` with `git cherry-pick` 
     * apply patches starting from the oldest to the newest
 * git checkout civicrm-VERSION.patched
 * git cherry-pick HASH-COMMIT  // choose hash from list of commits from current branch
