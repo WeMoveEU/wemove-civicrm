@@ -126,16 +126,14 @@ class CRM_Mailing_Event_BAO_TrackableURLOpen extends CRM_Mailing_Event_DAO_Track
       $distinct = 'DISTINCT ';
     }
     $query = "
-            SELECT      COUNT($distinct $click.event_queue_id) as opened
-            FROM        $click
-            INNER JOIN  $queue
-                    ON  $click.event_queue_id = $queue.id
-            INNER JOIN  $job
-                    ON  $queue.job_id = $job.id
-            INNER JOIN  $mailing
-                    ON  $job.mailing_id = $mailing.id
-                    AND $job.is_test = 0
-            WHERE       $mailing.id = " . CRM_Utils_Type::escape($mailing_id, 'Integer');
+        SELECT        COUNT($distinct $click.event_queue_id) as opened
+        FROM				  $job
+        STRAIGHT_JOIN $queue
+                   ON $queue.job_id = $job.id
+        STRAIGHT_JOIN $click
+                   ON $click.event_queue_id = $queue.id
+        WHERE         $job.is_test = 0
+                  AND $job.mailing_id = " . CRM_Utils_Type::escape($mailing_id, 'Integer');
 
     if (!empty($toDate)) {
       $query .= " AND $click.time_stamp <= $toDate";
