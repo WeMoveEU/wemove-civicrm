@@ -78,16 +78,14 @@ class CRM_Mailing_Event_BAO_Opened extends CRM_Mailing_Event_DAO_Opened {
     $job = CRM_Mailing_BAO_MailingJob::getTableName();
 
     $query = "
-            SELECT      COUNT($open.id) as opened
-            FROM        $open
-            INNER JOIN  $queue
-                    ON  $open.event_queue_id = $queue.id
-            INNER JOIN  $job
-                    ON  $queue.job_id = $job.id
-            INNER JOIN  $mailing
-                    ON  $job.mailing_id = $mailing.id
-                    AND $job.is_test = 0
-            WHERE       $mailing.id = " . CRM_Utils_Type::escape($mailing_id, 'Integer');
+        SELECT        COUNT($open.id) as opened
+        FROM				  $job
+        STRAIGHT_JOIN $queue
+                   ON $queue.job_id = $job.id
+        STRAIGHT_JOIN $open
+                   ON $open.event_queue_id = $queue.id
+        WHERE         $job.is_test = 0
+                  AND $job.mailing_id = " . CRM_Utils_Type::escape($mailing_id, 'Integer');
 
     if (!empty($toDate)) {
       $query .= " AND $open.time_stamp <= $toDate";
