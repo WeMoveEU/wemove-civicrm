@@ -1,12 +1,12 @@
 # How to add new version of civicrm to repository
 
-* \# copy to text editor, replace VERSION with 5.3.2, copy commands to terminal & Engage!
+* \# copy to text editor, replace VERSION with 5.10.3, copy commands to terminal & Engage!
 * git checkout master
 * git checkout -b civicrm-VERSION.vanilla
 * git clean -f -d
 * wget https://download.civicrm.org/civicrm-VERSION-drupal.tar.gz
 * tar -xvzf civicrm-VERSION-drupal.tar.gz
-* rm civicrm-4.7.20-drupal.tar.gz
+* rm civicrm-VERSION-drupal.tar.gz
 * cd civicrm/ && mv * ../ && cd .. && rm civicrm/ -R
 * git add *
 * git commit -m "CiviCRM VERSION Vanilla"
@@ -14,6 +14,23 @@
 * git checkout -b civicrm-VERSION.patched
 * git push -u origin civicrm-VERSION.patched
 * \# add patches, look at below...
+
+# How to add patches to new clean patched branch
+
+There're several possibilities how to add our custom patches.
+
+* git checkout civicrm-PREVIOUS-VERSION.patched
+* git fetch, git pull
+* open list of commits of current patched branch
+    * `git log --reverse` on separate console window
+    * copy the list to text editor, will be a checklist what you have to check
+        * replace `commit` with `git cherry-pick`
+    * apply patches starting from the oldest to the newest
+* git checkout civicrm-VERSION.patched
+* git cherry-pick HASH-COMMIT  // choose hash from list of commits from current branch
+    * `git cherry-pick --continue` after fixing known conflicts
+    * `git cherry-pick --abort` in case of conflict (patch could be already merged in VERSION)
+    * `git reset` in case of commit already patched in core
 
 # How to create new patch
 
@@ -36,21 +53,4 @@ Example for editing Mailing.php class
 
 * `crm-99999` for reported issues
 * `patch.WORDS-SEPARATED-BY-DASHES` for our patches
-
-# How to add patches to new clean patched branch
-
-There're several possibilities how to add our custom patches.
-
-* git checkout civicrm-PREVIOUS-VERSION.patched
-* git fetch, git pull
-* open list of commits of current patched branch
-    * `git log --reverse` on separate console window
-    * copy the list to text editor, will be a checklist what you have to check
-        * replace `commit` with `git cherry-pick` 
-    * apply patches starting from the oldest to the newest
-* git checkout civicrm-VERSION.patched
-* git cherry-pick HASH-COMMIT  // choose hash from list of commits from current branch
-    * `git cherry-pick --continue` after fixing known conflicts
-    * `git cherry-pick --abort` in case of conflict (patch could be already merged in VERSION)
-    * `git reset` in case of commit already patched in core
 
