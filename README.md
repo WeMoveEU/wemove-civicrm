@@ -23,11 +23,13 @@ There're several possibilities how to add our custom patches.
 * git fetch, git pull
 * open list of commits of current patched branch
     * `git log --reverse` on separate console window
+        * `git log --reverse | grep "^commit " | sed 's/commit /git cherry-pick /' # apply from 3rd line to bottom commit by commit`
     * copy the list to text editor, will be a checklist what you have to check
         * replace `commit` with `git cherry-pick`
-    * apply patches starting from the oldest to the newest
 * git checkout civicrm-VERSION.patched
-* git cherry-pick HASH-COMMIT  // choose hash from list of commits from current branch
+* apply patches starting from the oldest to the newest
+    * check if patch is already merged into core (official issues)
+    * git cherry-pick HASH-COMMIT
     * `git cherry-pick --continue` after fixing known conflicts
     * `git cherry-pick --abort` in case of conflict (patch could be already merged in VERSION)
     * `git reset` in case of commit already patched in core
