@@ -4997,7 +4997,10 @@ civicrm_relationship.start_date > {$today}
     $limit = '';
     $query = "$select $from $where $groupBy $order $limit";
 
-    return CRM_Core_DAO::executeQuery($query);
+    CRM_Core_DAO::disableFullGroupByMode();
+    $result = CRM_Core_DAO::executeQuery($query);
+    CRM_Core_DAO::reenableFullGroupByMode();
+    return $result;
   }
 
   /**
