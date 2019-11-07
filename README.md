@@ -24,8 +24,6 @@ There're several possibilities how to add our custom patches.
 * open list of commits of current patched branch
     * `git log --reverse` on separate console window
         * `git log --reverse | grep "^commit " | sed 's/commit /git cherry-pick /' # apply from 3rd line to bottom commit by commit`
-    * copy the list to text editor, will be a checklist what you have to check
-        * replace `commit` with `git cherry-pick`
 * git checkout civicrm-VERSION.patched
 * apply patches starting from the oldest to the newest
     * check if patch is already merged into core (official issues)
@@ -33,6 +31,7 @@ There're several possibilities how to add our custom patches.
     * `git cherry-pick --continue` after fixing known conflicts
     * `git cherry-pick --abort` in case of conflict (patch could be already merged in VERSION)
     * `git reset` in case of commit already patched in core
+* git push
 
 # How to create new patch
 
@@ -53,6 +52,5 @@ Example for editing Mailing.php class
 
 ## Branch template for patch
 
-* `crm-99999` for reported issues
+* `core-99999` for reported issues
 * `patch.WORDS-SEPARATED-BY-DASHES` for our patches
-
