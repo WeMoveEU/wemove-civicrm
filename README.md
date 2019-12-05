@@ -1,18 +1,19 @@
 # How to add new version of civicrm to repository
 
-* \# copy to text editor, replace VERSION with 5.10.3, copy commands to terminal & Engage!
+* \# copy to text editor, set VERSION variable, copy commands to terminal & Engage!
+* VERSION='5.19.4'
 * git checkout master
-* git checkout -b civicrm-VERSION.vanilla
+* git checkout -b civicrm-$VERSION.vanilla
 * git clean -f -d
-* wget https://download.civicrm.org/civicrm-VERSION-drupal.tar.gz
-* tar -xvzf civicrm-VERSION-drupal.tar.gz
-* rm civicrm-VERSION-drupal.tar.gz
+* wget https://download.civicrm.org/civicrm-$VERSION-drupal.tar.gz
+* tar -xvzf civicrm-$VERSION-drupal.tar.gz
+* rm civicrm-$VERSION-drupal.tar.gz
 * cd civicrm/ && mv * ../ && cd .. && rm civicrm/ -R
 * git add *
-* git commit -m "CiviCRM VERSION Vanilla"
-* git push -u origin civicrm-VERSION.vanilla
-* git checkout -b civicrm-VERSION.patched
-* git push -u origin civicrm-VERSION.patched
+* git commit -m "CiviCRM $VERSION Vanilla"
+* git push -u origin civicrm-$VERSION.vanilla
+* git checkout -b civicrm-$VERSION.patched
+* git push -u origin civicrm-$VERSION.patched
 * \# add patches, look at below...
 
 # How to add patches to new clean patched branch
