@@ -2354,7 +2354,9 @@ class CRM_Contact_BAO_Query {
             }
           }
         }
-        $this->_where[$grouping][] = CRM_Core_DAO::createSQLFilter($fieldName, $value, $type);
+        if (CRM_Core_DAO::createSQLFilter($fieldName, $value, $type)) {
+          $this->_where[$grouping][] = CRM_Core_DAO::createSQLFilter($fieldName, $value, $type);
+        }
       }
       else {
         if ($wildcard) {
