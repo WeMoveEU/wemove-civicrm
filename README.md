@@ -14,6 +14,7 @@
 * git push -u origin civicrm-$VERSION.vanilla
 * git checkout -b civicrm-$VERSION.patched
 * git push -u origin civicrm-$VERSION.patched
+* git branch -vv
 * \# add patches, look at below...
 
 # How to add patches to new clean patched branch
