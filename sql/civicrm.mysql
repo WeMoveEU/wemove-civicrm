@@ -3877,7 +3877,7 @@ CREATE TABLE `civicrm_mailing_job` (
 CREATE TABLE `civicrm_mailing_recipients` (
 
 
-     `id` int unsigned NOT NULL AUTO_INCREMENT  ,
+     `id` bigint unsigned NOT NULL AUTO_INCREMENT  ,
      `mailing_id` int unsigned NOT NULL   COMMENT 'The ID of the mailing this Job will send.',
      `contact_id` int unsigned NOT NULL   COMMENT 'FK to Contact',
      `email_id` int unsigned   DEFAULT NULL COMMENT 'FK to Email',
