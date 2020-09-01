@@ -90,7 +90,7 @@ WHERE  mailing_id = %1
     $temporaryTable = CRM_Utils_SQL_TempTable::build()
       ->setCategory('sr' . $sourceMailingId)
       ->setMemory()
-      ->createWithColumns("mailing_recipient_id int unsigned, id int PRIMARY KEY AUTO_INCREMENT, INDEX(mailing_recipient_id)");
+      ->createWithColumns("mailing_recipient_id bigint unsigned, id int PRIMARY KEY AUTO_INCREMENT, INDEX(mailing_recipient_id)");
     $temporaryTableName = $temporaryTable->getName();
     $sql = "
 INSERT INTO {$temporaryTableName} (mailing_recipient_id)
