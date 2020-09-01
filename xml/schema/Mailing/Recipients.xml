@@ -10,7 +10,7 @@
   <field>
     <name>id</name>
     <title>Mailing Recipients ID</title>
-    <type>int unsigned</type>
+    <type>bigint unsigned</type>
     <required>true</required>
   </field>
   <primaryKey>
