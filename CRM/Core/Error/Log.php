@@ -58,6 +58,7 @@ class CRM_Core_Error_Log extends \Psr\Log\AbstractLogger {
         trigger_error($message, E_USER_DEPRECATED);
       }
     }
+    $message = "[" . getmypid() . "] [" . microtime(true) . "] $message";
     CRM_Core_Error::debug_log_message($message, FALSE, '', $this->map[$level]);
   }
 

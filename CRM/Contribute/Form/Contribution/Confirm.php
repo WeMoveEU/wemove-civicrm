@@ -1622,7 +1622,7 @@ class CRM_Contribute_Form_Contribution_Confirm extends CRM_Contribute_Form_Contr
         $paymentResults[] = ['contribution_id' => $paymentResult['contribution']->id, 'result' => $paymentActionResult];
       }
       // Do not send an email if Recurring transaction is done via Direct Mode
-      // Email will we sent when the IPN is received.
+      // Email will be sent when the IPN is received.
       foreach ($paymentResults as $result) {
         //CRM-18211: Fix situation where second contribution doesn't exist because it is optional.
         if ($result['contribution_id']) {
@@ -2019,6 +2019,11 @@ class CRM_Contribute_Form_Contribution_Confirm extends CRM_Contribute_Form_Contr
    * @throws \CRM_Core_Exception
    */
   protected function processFormSubmission($contactID) {
+
+    $log = Civi::Log();
+    $t0 = microtime(true);
+    $log->debug("[PAYPAL] Start processing this payment form submission: $contactID");
+
     if (!isset($this->_params['payment_processor_id'])) {
       // If there is no processor we are using the pay-later manual pseudo-processor.
       // (note it might make sense to make this a row in the processor table in the db).
@@ -2066,6 +2071,7 @@ class CRM_Contribute_Form_Contribution_Confirm extends CRM_Contribute_Form_Contr
     if (!empty($this->_paymentProcessor['id'])) {
       $this->_params['payment_processor_id'] = $this->_paymentProcessor['id'];
     }
+
 
     $premiumParams = $membershipParams = $params = $this->_params;
     if (!empty($params['image_URL'])) {
@@ -2177,6 +2183,8 @@ class CRM_Contribute_Form_Contribution_Confirm extends CRM_Contribute_Form_Contr
       }
 
       $contactID = CRM_Contact_BAO_Contact::getFirstDuplicateContact($dupeParams, 'Individual', 'Unsupervised', [], FALSE);
+      $log->debug("[PAYPAL] Checking for duplicate contact");
+      $t0 = microtime(true);
 
       // Fetch default greeting id's if creating a contact
       if (!$contactID) {
@@ -2215,7 +2223,9 @@ class CRM_Contribute_Form_Contribution_Confirm extends CRM_Contribute_Form_Contr
     // subscribing contact to groups
     if (!empty($subscribeGroupIds) && $subscriptionEmail['email']) {
       CRM_Mailing_Event_BAO_Subscribe::commonSubscribe($subscribeGroupIds, $subscriptionEmail, $contactID);
+      $log->debug("[PAYPAL] subscribed contact $contactId $subscriptionEmail to groups");
     }
+
 
     // If onbehalf-of-organization contribution / signup, add organization
     // and it's location.
@@ -2301,6 +2311,8 @@ class CRM_Contribute_Form_Contribution_Confirm extends CRM_Contribute_Form_Contr
         }
       }
 
+      $log->debug("[PAYPAL] calling processConfirm");
+
       $result = CRM_Contribute_BAO_Contribution_Utils::processConfirm($this, $paymentParams,
         $contactID,
         $this->wrangleFinancialTypeID($this->_values['financial_type_id']),
@@ -2308,14 +2320,25 @@ class CRM_Contribute_Form_Contribution_Confirm extends CRM_Contribute_Form_Contr
         CRM_Utils_Array::value('is_recur', $paymentParams)
       );
 
+      $log->debug("[PAYPAL] returned from processConfirm");
+
       if (empty($result['is_payment_failure'])) {
+        $log->debug("[PAYPAL] call postProcessPremium");
         // @todo move premium processing to complete transaction if it truly is an 'after' action.
         $this->postProcessPremium($premiumParams, $result['contribution']);
+
       }
       if (!empty($result['contribution'])) {
+        $log->debug("[PAYPAL] completing transaction.");
+
         // It seems this line is hit when there is a zero dollar transaction & in tests, not sure when else.
         $this->completeTransaction($result, $result['contribution']->id);
+
+        $log->debug("[PAYPAL] completed transaction.");
       }
+
+      $log->debug("[PAYPAL] all done, returning ");
+
       return $result;
     }
   }

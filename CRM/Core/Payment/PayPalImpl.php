@@ -321,6 +321,10 @@ class CRM_Core_Payment_PayPalImpl extends CRM_Core_Payment {
     }
     $args = [];
 
+    $log = Civi::Log();
+
+    $log->debug("[PAYPAL] doing Express Checkout");
+
     $this->initialize($args, 'DoExpressCheckoutPayment');
     $args['token'] = $params['token'];
     $args['paymentAction'] = 'Sale';
@@ -335,7 +339,10 @@ class CRM_Core_Payment_PayPalImpl extends CRM_Core_Payment {
     // add CiviCRM BN code
     $args['BUTTONSOURCE'] = 'CiviCRM_SP';
 
+    $t0 = microtime(true);
+    $log->debug("[PAYPAL] calling the PayPal API for express checkout {$params['invoiceId']}");
     $result = $this->invokeAPI($args);
+    $log->debug("[PAYPAL] called the PayPal API for express checkout " . (microtime(true) - $t0) . " elapsed.");
 
     /* Success */
     $params['trxn_id'] = $result['transactionid'];
@@ -372,6 +379,9 @@ class CRM_Core_Payment_PayPalImpl extends CRM_Core_Payment {
     $args = [];
     $this->initialize($args, 'CreateRecurringPaymentsProfile');
 
+    $log = Civi::Log();
+    $log->debug("[PAYPAL] creating recurring payments");
+
     $start_time = strtotime(date('m/d/Y'));
     $start_date = date('Y-m-d\T00:00:00\Z', $start_time);
 
@@ -397,8 +407,11 @@ class CRM_Core_Payment_PayPalImpl extends CRM_Core_Payment {
 
     // add CiviCRM BN code
     $args['BUTTONSOURCE'] = 'CiviCRM_SP';
-
+    
+    $t0 = microtime(true);
+    $log->debug("[PAYPAL] calling the PayPal API for recurring {$params['invoiceId']}");
     $result = $this->invokeAPI($args);
+    $log->debug("[PAYPAL] called the PayPal API for recurring " . (microtime(true) - $t0) . " elapsed.");
 
     /* Success - result looks like"
      * array (
@@ -1017,11 +1030,19 @@ class CRM_Core_Payment_PayPalImpl extends CRM_Core_Payment {
     //setting the nvpreq as POST FIELD to curl
     curl_setopt($ch, CURLOPT_POSTFIELDS, $nvpreq);
 
+    //dump header info for debugging
+    //curl_setopt($ch, CURLINFO_HEADER_OUT, true);
+
     //getting response from server
     $response = curl_exec($ch);
 
+    //debug
+    $info = curl_getinfo($ch);
+    //Civi::Log()->debug("[PAYPAL] [API REQUEST] {$info['http_code']} {$info['request_header']} Request content: {$nvpreq}");
+
     //converting NVPResponse to an Associative Array
     $result = self::deformat($response);
+    //Civi::Log()->debug("[PAYPAL] [API RESPONSE] " . json_encode($result));
 
     if (curl_errno($ch)) {
       throw new PaymentProcessorException(ts('Network error') . ' ' . curl_error($ch) . curl_errno($ch), curl_errno($ch));
