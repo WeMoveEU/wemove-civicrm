@@ -54,6 +54,7 @@ class CRM_Core_Error_Log extends \Psr\Log\AbstractLogger {
       }
       $message .= "\n" . print_r($context, 1);
     }
+    $message = "[" . getmypid() . "] [" . microtime(true) . "] $message";
     CRM_Core_Error::debug_log_message($message, FALSE, '', $this->map[$level]);
   }
 
