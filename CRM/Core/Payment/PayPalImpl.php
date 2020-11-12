@@ -808,9 +808,14 @@ class CRM_Core_Payment_PayPalImpl extends CRM_Core_Payment {
     }
     $this->_component = $params['component'];
     $token = $this->setExpressCheckOut($params);
+
+    $site = $this->_paymentProcessor['url_site'];
+    preg_replace('#/+$#', '', $site);
+    $redirect_url = "$site/cgi-bin/webscr?cmd=_express-checkout&token=$token";
+
     return [
       'pre_approval_parameters' => ['token' => $token],
-      'redirect_url' => $this->_paymentProcessor['url_site'] . "/cgi-bin/webscr?cmd=_express-checkout&token=$token",
+      'redirect_url' => $redirect_url,
     ];
   }
 
