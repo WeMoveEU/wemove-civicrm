@@ -1037,7 +1037,7 @@ class CRM_Core_Payment_PayPalImpl extends CRM_Core_Payment {
     $response = curl_exec($ch);
 
     //debug
-    $info = curl_getinfo($ch);
+    //$info = curl_getinfo($ch);
     //Civi::Log()->debug("[PAYPAL] [API REQUEST] {$info['http_code']} {$info['request_header']} Request content: {$nvpreq}");
 
     //converting NVPResponse to an Associative Array
