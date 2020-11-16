@@ -882,10 +882,12 @@ class CRM_Contribute_Form_Contribution_Confirm extends CRM_Contribute_Form_Contr
     $billingLocationID,
     $isRecur
   ) {
+
+    $log = Civi::Log();
     $log->debug("[PAYPAL] starting processFormContribution");
 
     $transaction = new CRM_Core_Transaction();
-    $contactID = $contributionParams['contac_id'];
+    $contactID = $contributionParams['contact_id'];
 
     $log->debug("[PAYPAL] got a transaction.");
 
