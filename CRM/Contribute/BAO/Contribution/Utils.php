@@ -48,6 +48,9 @@ class CRM_Contribute_BAO_Contribution_Utils {
     CRM_Core_Payment_Form::mapParams($form->_bltID, $form->_params, $paymentParams, TRUE);
     $isPaymentTransaction = self::isPaymentTransaction($form);
 
+    $log = Civi::Log();
+    $log->debug("[PAYPAL] entering processCofirm for contact $contactID");
+
     $financialType = new CRM_Financial_DAO_FinancialType();
     $financialType->id = $financialTypeID;
     $financialType->find(TRUE);
@@ -66,6 +69,8 @@ class CRM_Contribute_BAO_Contribution_Utils {
     $paymentParams['financialType_accounting_code'] = $paymentParams['contributionType_accounting_code'] = $form->_params['contributionType_accounting_code'] = CRM_Financial_BAO_FinancialAccount::getAccountingCode($financialTypeID);
     $paymentParams['contributionPageID'] = $form->_params['contributionPageID'] = $form->_values['id'];
     $paymentParams['contactID'] = $form->_params['contactID'] = $contactID;
+
+    $log->debug("[PAYPAL] Set a bunch of params");
 
     //fix for CRM-16317
     if (empty($form->_params['receive_date'])) {
@@ -94,6 +99,8 @@ class CRM_Contribute_BAO_Contribution_Utils {
         'source' => CRM_Utils_Array::value('source', $paymentParams, CRM_Utils_Array::value('description', $paymentParams)),
       ];
 
+      $log->debug("[PAYPAL] Set even more params!");
+
       // CRM-21200: Don't overwrite contribution details during 'Pay now' payment
       if (empty($form->_params['contribution_id'])) {
         $contributionParams['contribution_page_id'] = $form->_id;
@@ -112,6 +119,8 @@ class CRM_Contribute_BAO_Contribution_Utils {
         );
       }
 
+      $log->debug("[PAYPAL] The params are never ending, it's incredible");
+
       if (isset($paymentParams['line_item'])) {
         // @todo make sure this is consisently set at this point.
         $contributionParams['line_item'] = $paymentParams['line_item'];
@@ -119,6 +128,10 @@ class CRM_Contribute_BAO_Contribution_Utils {
       if (!empty($form->_paymentProcessor)) {
         $contributionParams['payment_instrument_id'] = $paymentParams['payment_instrument_id'] = $form->_paymentProcessor['payment_instrument_id'];
       }
+
+      $log->debug(
+          "[PAYPAL] Calling CRM_Contribute_Form_Contribution_Confirm::processFormContribution"
+      );
 
       // @todo this is the wrong place for this - it should be done as close to form submission
       // as possible
@@ -134,12 +147,18 @@ class CRM_Contribute_BAO_Contribution_Utils {
         $isRecur
       );
 
+      $log->debug(
+        "[PAYPAL] Back from CRM_Contribute_Form_Contribution_Confirm::processFormContribution with a contribution object."
+      );
+
+
       $paymentParams['item_name'] = $form->_params['description'];
 
       $paymentParams['qfKey'] = empty($paymentParams['qfKey']) ? $form->controller->_key : $paymentParams['qfKey'];
       if ($paymentParams['skipLineItem']) {
         // We are not processing the line item here because we are processing a membership.
         // Do not continue with contribution processing in this function.
+        $log->debug("[PAYPAL] It's a membership, returning now.");
         return ['contribution' => $contribution];
       }
 
@@ -162,15 +181,25 @@ class CRM_Contribute_BAO_Contribution_Utils {
       $form->_values['contribution_id'] = $contribution->id;
       $form->_values['contribution_page_id'] = $contribution->contribution_page_id;
 
+      $log->debug("[PAYPAL] Updated a bunch of form values, heading into the processing.");
+
       if (!empty($form->_paymentProcessor)) {
+        $log->debug("[PAYPAL] Have a payment processor.");
         try {
           $payment = Civi\Payment\System::singleton()->getByProcessor($form->_paymentProcessor);
+          $log->debug("[PAYPAL] Got a payment by processor.");
+
           if ($form->_contributeMode == 'notify') {
             // We want to get rid of this & make it generic - eg. by making payment processing the last thing
             // and always calling it first.
+            $log->debug("[PAYPAL] Calling postProcessHook.");
             $form->postProcessHook();
+            $log->debug("[PAYPAL] Back from postProcessHook.");
           }
+          $log->debug("[PAYPAL] Calling doPayment - this is so exciting.");
           $result = $payment->doPayment($paymentParams);
+          $log->debug("[PAYPAL] Back from doPayment.");
+
           $form->_params = array_merge($form->_params, $result);
           $form->assign('trxn_id', CRM_Utils_Array::value('trxn_id', $result));
           if (!empty($result['trxn_id'])) {
@@ -180,27 +209,40 @@ class CRM_Contribute_BAO_Contribution_Utils {
             $contribution->payment_status_id = $result['payment_status_id'];
           }
           $result['contribution'] = $contribution;
+          
           if ($result['payment_status_id'] == CRM_Core_PseudoConstant::getKey('CRM_Contribute_BAO_Contribution', 'contribution_status_id', 'Pending')
             && $payment->isSendReceiptForPending()) {
+            $log->debug("[PAYPAL] sending mail.");
             CRM_Contribute_BAO_ContributionPage::sendMail($contactID,
               $form->_values,
               $contribution->is_test
             );
           }
+          $log->debug("[PAYPAL] OK, returning from a successful payment.");
+
           return $result;
         }
         catch (\Civi\Payment\Exception\PaymentProcessorException $e) {
+
+          $log->debug("[PAYPAL] Caught a processor exception : $e.");
+
           // Clean up DB as appropriate.
           if (!empty($paymentParams['contributionID'])) {
             CRM_Contribute_BAO_Contribution::failPayment($paymentParams['contributionID'],
               $paymentParams['contactID'], $e->getMessage());
           }
+          $log->debug("[PAYPAL] Database is clean again");
+
           if (!empty($paymentParams['contributionRecurID'])) {
             CRM_Contribute_BAO_ContributionRecur::deleteRecurContribution($paymentParams['contributionRecurID']);
           }
+          $log->debug("[PAYPAL] Recurring contribution is gone.");
 
           $result['is_payment_failure'] = TRUE;
           $result['error'] = $e;
+
+          $log->debug("[PAYPAL] Heading home after a processor exception");
+
           return $result;
         }
       }
@@ -221,10 +263,15 @@ class CRM_Contribute_BAO_Contribution_Utils {
       ];
     }
 
-    CRM_Contribute_BAO_ContributionPage::sendMail($contactID,
+    $log->debug("[PAYPAL] Sending an email : $e.");
+
+    $return_value = CRM_Contribute_BAO_ContributionPage::sendMail($contactID,
       $form->_values,
       $contribution->is_test
     );
+    $log->debug("[PAYPAL] Sent it!");
+
+    return $return_value;
   }
 
   /**
