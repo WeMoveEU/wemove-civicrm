@@ -1055,8 +1055,13 @@ class CRM_Contribute_Form_Contribution_Confirm extends CRM_Contribute_Form_Contr
     $billingLocationID,
     $isRecur
   ) {
+    $log = Civi::Log();
+    $log->debug("[PAYPAL] starting processFormContribution");
+
     $transaction = new CRM_Core_Transaction();
     $contactID = $contributionParams['contact_id'];
+
+    $log->debug("[PAYPAL] got a transaction.");
 
     $isEmailReceipt = !empty($form->_values['is_email_receipt']);
     $isSeparateMembershipPayment = !empty($params['separate_membership_payment']);
@@ -1073,6 +1078,7 @@ class CRM_Contribute_Form_Contribution_Confirm extends CRM_Contribute_Form_Contr
     $params['financial_type_id'] = $financialType->id;
 
     $contributionParams['address_id'] = CRM_Contribute_BAO_Contribution::createAddress($params, $billingLocationID);
+    $log->debug("[PAYPAL] create an address");
 
     //@todo - this is being set from the form to resolve CRM-10188 - an
     // eNotice caused by it not being set @ the front end
@@ -1083,9 +1089,14 @@ class CRM_Contribute_Form_Contribution_Confirm extends CRM_Contribute_Form_Contr
     if (!isset($params['is_email_receipt']) && $isEmailReceipt) {
       $params['is_email_receipt'] = $isEmailReceipt;
     }
+
+    $log->debug("[PAYPAL] calling processRecurringContribution");
+
     $params['is_recur'] = $isRecur;
     $params['payment_instrument_id'] = $contributionParams['payment_instrument_id'] ?? NULL;
     $recurringContributionID = self::processRecurringContribution($form, $params, $contactID, $financialType);
+
+    $log->debug("[PAYPAL] called processRecurringContribution");
 
     $now = date('YmdHis');
     $receiptDate = $params['receipt_date'] ?? NULL;
@@ -1105,7 +1116,9 @@ class CRM_Contribute_Form_Contribution_Confirm extends CRM_Contribute_Form_Contr
       // as possible
       $contributionParams['total_amount'] = $params['amount'];
 
+      $log->debug("[PAYPAL] calling Contribution::add");
       $contribution = CRM_Contribute_BAO_Contribution::add($contributionParams);
+      $log->debug("[PAYPAL] called Contribution::add");
 
       $invoiceSettings = Civi::settings()->get('contribution_invoice_settings');
       $invoicing = $invoiceSettings['invoicing'] ?? NULL;
@@ -1132,19 +1145,27 @@ class CRM_Contribute_Form_Contribution_Confirm extends CRM_Contribute_Form_Contr
 
       // lets store it in the form variable so postProcess hook can get to this and use it
       $form->_contributionID = $contribution->id;
+      $log->debug("[PAYPAL] \$contribution is created");
+
     }
 
     // process soft credit / pcp params first
     CRM_Contribute_BAO_ContributionSoft::formatSoftCreditParams($params, $form);
+    $log->debug("[PAYPAL] called formatSoftCreditParams");
 
     //CRM-13981, processing honor contact into soft-credit contribution
     CRM_Contribute_BAO_ContributionSoft::processSoftContribution($params, $contribution);
+    $log->debug("[PAYPAL] called processSoftContribution");
+
 
     if ($isPledge) {
+      $log->debug("[PAYPAL] handling Pledge");
       $form = self::handlePledge($form, $params, $contributionParams, $pledgeID, $contribution, $isEmailReceipt);
+      $log->debug("[PAYPAL] handled Pledge");
     }
 
     if ($online && $contribution) {
+      $log->debug("[PAYPAL] postProcessing for \$online && \$contribution");
       CRM_Core_BAO_CustomValueTable::postProcess($params,
         'civicrm_contribution',
         $contribution->id,
@@ -1157,6 +1178,7 @@ class CRM_Contribute_Form_Contribution_Confirm extends CRM_Contribute_Form_Contr
       if (!empty($params['custom']) &&
         is_array($params['custom'])
       ) {
+        $log->debug("[PAYPAL] calling CustomValueTable::store");
         CRM_Core_BAO_CustomValueTable::store($params['custom'], 'civicrm_contribution', $contribution->id);
       }
     }
@@ -1169,6 +1191,7 @@ class CRM_Contribute_Form_Contribution_Confirm extends CRM_Contribute_Form_Contr
         'contact_id' => $contribution->contact_id,
       ];
 
+      $log->debug("[PAYPAL] adding a note");
       CRM_Core_BAO_Note::add($noteParams, []);
     }
 
@@ -1186,8 +1209,11 @@ class CRM_Contribute_Form_Contribution_Confirm extends CRM_Contribute_Form_Contr
 
     // create an activity record
     if ($contribution) {
+      $log->debug("[PAYPAL] Adding activity");
       CRM_Activity_BAO_Activity::addActivity($contribution, 'Contribution', $targetContactID, $actParams);
     }
+
+    $log->debug("[PAYPAL] Committing transaction.");
 
     $transaction->commit();
     return $contribution;
@@ -1205,9 +1231,14 @@ class CRM_Contribute_Form_Contribution_Confirm extends CRM_Contribute_Form_Contr
    */
   public static function processRecurringContribution(&$form, &$params, $contactID, $contributionType) {
 
+    // NOTE: might be better to check this in the caller - it would make it easier to understand
+    // the code.
     if (empty($params['is_recur'])) {
       return NULL;
     }
+
+    $log = Civi::Log();
+    $log->debug("[PAYPAL] OH! starting processRecurringContribution.");
 
     $recurParams = ['contact_id' => $contactID];
     $recurParams['amount'] = $params['amount'] ?? NULL;
@@ -1254,7 +1285,11 @@ class CRM_Contribute_Form_Contribution_Confirm extends CRM_Contribute_Form_Contr
 
     $campaignId = $params['campaign_id'] ?? $form->_values['campaign_id'] ?? NULL;
     $recurParams['campaign_id'] = $campaignId;
+    $log->debug("[PAYPAL] Calling CRM_Contribute_BAO_ContributionRecur::add.");
+
     $recurring = CRM_Contribute_BAO_ContributionRecur::add($recurParams);
+    $log->debug("[PAYPAL] Back from ContributionRecur::add.");
+
     if (is_a($recurring, 'CRM_Core_Error')) {
       CRM_Core_Error::displaySessionError($recurring);
       $urlString = 'civicrm/contribute/transact';
@@ -1266,9 +1301,13 @@ class CRM_Contribute_Form_Contribution_Confirm extends CRM_Contribute_Form_Contr
           $urlParams .= "&mode={$form->_mode}";
         }
       }
+
+      $log->debug("[PAYPAL]  CRM_Contribute_BAO_ContributionRecur::add returned an error, redirecting.");
       CRM_Utils_System::redirect(CRM_Utils_System::url($urlString, $urlParams));
     }
     $form->_params['contributionRecurID'] = $recurring->id;
+
+    $log->debug("[PAYPAL] returning from processRecurringContribution.");
 
     return $recurring->id;
   }
@@ -2377,7 +2416,7 @@ class CRM_Contribute_Form_Contribution_Confirm extends CRM_Contribute_Form_Contr
     // subscribing contact to groups
     if (!empty($subscribeGroupIds) && $subscriptionEmail['email']) {
       CRM_Mailing_Event_BAO_Subscribe::commonSubscribe($subscribeGroupIds, $subscriptionEmail, $contactID);
-      $log->debug("[PAYPAL] subscribed contact $contactId $subscriptionEmail to groups");
+      $log->debug("[PAYPAL] subscribed contact $contactID $subscriptionEmail to groups");
     }
 
 
