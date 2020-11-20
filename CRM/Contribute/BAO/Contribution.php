@@ -94,10 +94,6 @@ class CRM_Contribute_BAO_Contribution extends CRM_Contribute_DAO_Contribution {
     if (!empty($ids)) {
       CRM_Core_Error::deprecatedFunctionWarning('ids should not be passed into Contribution.add');
     }
-
-    $log = Civi::Log();
-    $log->debug("[PAYPAL] starting Contribution::add");
-
     //per http://wiki.civicrm.org/confluence/display/CRM/Database+layer we are moving away from $ids array
     $contributionID = CRM_Utils_Array::value('contribution', $ids, CRM_Utils_Array::value('id', $params));
     $action = $contributionID ? 'edit' : 'create';
@@ -106,7 +102,6 @@ class CRM_Contribute_BAO_Contribution extends CRM_Contribute_DAO_Contribution {
       $message = ts("Duplicate error - existing contribution record(s) have a matching Transaction ID or Invoice ID. Contribution record ID(s) are: %1", [1 => implode(', ', $duplicates)]);
       throw new CRM_Core_Exception($message);
     }
-    $log->debug("[PAYPAL] not a duplicate");
 
     //set defaults in create mode
     if (!$contributionID) {
@@ -116,7 +111,6 @@ class CRM_Contribute_BAO_Contribution extends CRM_Contribute_DAO_Contribution {
         $params['invoice_number'] = self::getInvoiceNumber($nextContributionID);
       }
     }
-    $log->debug("[PAYPAL] set defaults");
 
     $contributionStatusID = $params['contribution_status_id'] ?? NULL;
     if (CRM_Core_PseudoConstant::getName('CRM_Contribute_BAO_Contribution', 'contribution_status_id', (int) $contributionStatusID) === 'Partially paid' && empty($params['is_post_payment_create'])) {
@@ -131,7 +125,6 @@ class CRM_Contribute_BAO_Contribution extends CRM_Contribute_DAO_Contribution {
       ]);
     }
     $contributionStatus = CRM_Core_PseudoConstant::getName('CRM_Contribute_BAO_Contribution', 'contribution_status_id', (int) $params['contribution_status_id']);
-    $log->debug("[PAYPAL] set contribution status");
 
     if (!$contributionID
       && !empty($params['membership_id'])
@@ -143,7 +136,6 @@ class CRM_Contribute_BAO_Contribution extends CRM_Contribute_DAO_Contribution {
       }
     }
     self::calculateMissingAmountParams($params, $contributionID);
-    $log->debug("[PAYPAL] calculated missing amount params");
 
     if (!empty($params['payment_instrument_id'])) {
       $paymentInstruments = CRM_Contribute_PseudoConstant::paymentInstrument('name');
@@ -151,7 +143,6 @@ class CRM_Contribute_BAO_Contribution extends CRM_Contribute_DAO_Contribution {
         $params['check_number'] = 'null';
       }
     }
-    $log->debug("[PAYPAL] payment instrument found");
 
     $setPrevContribution = TRUE;
     // CRM-13964 partial payment
@@ -166,14 +157,9 @@ class CRM_Contribute_BAO_Contribution extends CRM_Contribute_DAO_Contribution {
         $setPrevContribution = FALSE;
       }
     }
-    $log->debug("[PAYPAL] partial payment done");
-
     if ($contributionID && $setPrevContribution) {
-        $log->debug("[PAYPAL] getting prevContribution $contributionID");
-        $params['prevContribution'] = self::getOriginalContribution($contributionID);
-        $log->debug("[PAYPAL] done getting prevContribution");
+      $params['prevContribution'] = self::getOriginalContribution($contributionID);
     }
-
     $previousContributionStatus = ($contributionID && !empty($params['prevContribution'])) ? CRM_Core_PseudoConstant::getName('CRM_Contribute_BAO_Contribution', 'contribution_status_id', (int) $params['prevContribution']->contribution_status_id) : NULL;
 
     if ($contributionID && !empty($params['revenue_recognition_date'])
@@ -182,17 +168,13 @@ class CRM_Contribute_BAO_Contribution extends CRM_Contribute_DAO_Contribution {
     ) {
       unset($params['revenue_recognition_date']);
     }
-    $log->debug("[PAYPAL] handled pending and other.");
 
     if (!isset($params['tax_amount']) && $setPrevContribution && (isset($params['total_amount']) ||
      isset($params['financial_type_id']))) {
       $params = CRM_Contribute_BAO_Contribution::checkTaxAmount($params);
     }
-    $log->debug("[PAYPAL] taxes are set, calling pre hook.");
 
     CRM_Utils_Hook::pre($action, 'Contribution', $contributionID, $params);
-
-    $log->debug("[PAYPAL] Creating object and copying values.");
 
     $contribution = new CRM_Contribute_BAO_Contribution();
     $contribution->copyValues($params);
@@ -205,10 +187,8 @@ class CRM_Contribute_BAO_Contribution extends CRM_Contribute_DAO_Contribution {
         $contribution->currency = CRM_Core_Config::singleton()->defaultCurrency;
       }
     }
-    $log->debug("[PAYPAL] Going to save new Contribution $contributionID.");
 
     $result = $contribution->save();
-    $log->debug("[PAYPAL] Saved new Contribution $contributionID.");
 
     // Add financial_trxn details as part of fix for CRM-4724
     $contribution->trxn_result_code = $params['trxn_result_code'] ?? NULL;
@@ -217,7 +197,6 @@ class CRM_Contribute_BAO_Contribution extends CRM_Contribute_DAO_Contribution {
     //add Account details
     $params['contribution'] = $contribution;
     if (empty($params['is_post_payment_create'])) {
-      $log->debug("[PAYPAL] is post payment create!");
       // If this is being called from the Payment.create api/ BAO then that Entity
       // takes responsibility for the financial transactions. In fact calling Payment.create
       // to add payments & having it call completetransaction and / or contribution.create
@@ -226,17 +205,14 @@ class CRM_Contribute_BAO_Contribution extends CRM_Contribute_DAO_Contribution {
       // is likely to break in future and / or cause serious problems in your data.
       // https://github.com/civicrm/civicrm-core/pull/14673
       self::recordFinancialAccounts($params);
-      $log->debug("[PAYPAL] recorded financial accounts!");
     }
 
     if (self::isUpdateToRecurringContribution($params)) {
-      $log->debug("Updating recurring contribution");
       CRM_Contribute_BAO_ContributionRecur::updateOnNewPayment(
         (!empty($params['contribution_recur_id']) ? $params['contribution_recur_id'] : $params['prevContribution']->contribution_recur_id),
         $contributionStatus,
         CRM_Utils_Array::value('receive_date', $params)
       );
-      $log->debug("[PAYPAL] Updated recurring contribution");
     }
 
     $params['contribution_id'] = $contribution->id;
@@ -244,16 +220,12 @@ class CRM_Contribute_BAO_Contribution extends CRM_Contribute_DAO_Contribution {
     if (!empty($params['custom']) &&
       is_array($params['custom'])
     ) {
-      $log->debug("[PAYPAL] Storing custom fields");
       CRM_Core_BAO_CustomValueTable::store($params['custom'], 'civicrm_contribution', $contribution->id, $action);
-      $log->debug("[PAYPAL] Stored custom fields");
     }
 
-    $log->debug("[PAYPAL] calling cache flush");
     CRM_Contact_BAO_GroupContactCache::opportunisticCacheFlush();
-    $log->debug("[PAYPAL] cache flushed, calling post hook");
+
     CRM_Utils_Hook::post($action, 'Contribution', $contribution->id, $contribution);
-    $log->debug("[PAYPAL] back from Contributino post hook");
     return $result;
   }
 

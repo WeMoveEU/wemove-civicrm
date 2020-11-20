@@ -884,15 +884,11 @@ class CRM_Contribute_Form_Contribution_Confirm extends CRM_Contribute_Form_Contr
   ) {
 
     $log = Civi::Log();
-
-    if (in_array($params['payment_processor_id'], [5,6])) {
-        $log->debug("Yep, this is PAYPAL");
-    }
     $log->debug("[PAYPAL] starting processFormContribution");
 
     $transaction = new CRM_Core_Transaction();
     $contactID = $contributionParams['contact_id'];
-    
+
     $log->debug("[PAYPAL] got a transaction.");
 
     $isEmailReceipt = !empty($form->_values['is_email_receipt']);
