@@ -384,6 +384,7 @@ WHERE  id IN ( $groupIDs )
    */
   public static function opportunisticCacheFlush() {
     if (Civi::settings()->get('smart_group_cache_refresh_mode') == 'opportunistic') {
+      Civi::Log()->debug("flushing caches."); // TODO add caller info
       self::flushCaches();
     }
   }
