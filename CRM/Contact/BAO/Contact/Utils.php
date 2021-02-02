@@ -892,6 +892,7 @@ INNER JOIN civicrm_contact contact_target ON ( contact_target.id = act.contact_i
     $valueID = $id = $params['id'] ?? NULL;
     $force = $params['force'] ?? NULL;
     $limit = $params['limit'] ?? NULL;
+    $selectedContactID = $params['contact_id'] ?? NULL;
 
     // if valueID is not passed use default value
     if (!$valueID) {
@@ -951,9 +952,17 @@ INNER JOIN civicrm_contact contact_target ON ( contact_target.id = act.contact_i
           OR ( {$idFldName} IS NOT NULL AND ({$displayFldName} IS NULL OR {$displayFldName} = '')) )";
       }
 
+      if ($selectedContactID) {
+        $sql = "
+          SELECT DISTINCT id, $idFldName
+          FROM civicrm_contact
+          WHERE contact_type = %1 AND id = %2";
+        $queryParams += [2 => [$selectedContactID, 'Integer']];
+      }
+
       if ($limit) {
-        $sql .= " LIMIT 0, %2";
-        $queryParams += [2 => [$limit, 'Integer']];
+        $sql .= " LIMIT 0, %" . (count($queryParams) + 1);
+        $queryParams += [(count($queryParams) + 1) => [$limit, 'Integer']];
       }
 
       $dao = CRM_Core_DAO::executeQuery($sql, $queryParams);
