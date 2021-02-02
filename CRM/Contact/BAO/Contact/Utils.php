@@ -945,6 +945,7 @@ INNER JOIN civicrm_contact contact_target ON ( contact_target.id = act.contact_i
     $valueID = $id = $params['id'] ?? NULL;
     $force = $params['force'] ?? NULL;
     $limit = $params['limit'] ?? NULL;
+    $selectedContactID = $params['contact_id'] ?? NULL;
 
     // if valueID is not passed use default value
     if (!$valueID) {
@@ -1004,9 +1005,17 @@ INNER JOIN civicrm_contact contact_target ON ( contact_target.id = act.contact_i
           OR ( {$idFldName} IS NOT NULL AND ({$displayFldName} IS NULL OR {$displayFldName} = '')) )";
       }
 
+      if ($selectedContactID) {
+        $sql = "
+          SELECT DISTINCT id, $idFldName
+          FROM civicrm_contact
+          WHERE contact_type = %1 AND id = %2";
+        $queryParams += [2 => [$selectedContactID, 'Integer']];
+      }
+
       if ($limit) {
-        $sql .= " LIMIT 0, %2";
-        $queryParams += [2 => [$limit, 'Integer']];
+        $sql .= " LIMIT 0, %" . (count($queryParams) + 1);
+        $queryParams += [(count($queryParams) + 1) => [$limit, 'Integer']];
       }
 
       $dao = CRM_Core_DAO::executeQuery($sql, $queryParams);
@@ -1024,7 +1033,12 @@ INNER JOIN civicrm_contact contact_target ON ( contact_target.id = act.contact_i
     }
     // perform token replacement and build update SQL
     $contactIds = [];
-    $cacheFieldQuery = "UPDATE civicrm_contact SET {$greeting}_display = CASE id ";
+    $cacheFieldQuery = "UPDATE civicrm_contact SET {$greeting}_display = ";
+    //For a single contact, use standard UPDATE SET column = $value WHERE id = $id to avoid a table scan
+    if (!$selectedContactID) {
+      $cacheFieldQuery .= "CASE id ";
+    }
+
     foreach (array_keys($filterContactFldIds) as $contactID) {
       if (!$processAll &&
         !array_key_exists($contactID, $filterContactFldIds)
@@ -1048,14 +1062,21 @@ INNER JOIN civicrm_contact contact_target ON ( contact_target.id = act.contact_i
 
       self::processGreetingTemplate($greetingString, [], $contactID, 'CRM_UpdateGreeting');
       $greetingString = CRM_Core_DAO::escapeString($greetingString);
-      $cacheFieldQuery .= " WHEN {$contactID} THEN '{$greetingString}' ";
+      if ($selectedContactID) {
+        $cacheFieldQuery .= "'{$greetingString}' ";
+      } else {
+        $cacheFieldQuery .= " WHEN {$contactID} THEN '{$greetingString}' ";
+      }
 
       $allContactIds[] = $contactID;
     }
 
     if (!empty($allContactIds)) {
-      $cacheFieldQuery .= " ELSE {$greeting}_display
-                              END;";
+      if ($selectedContactID) {
+        $cacheFieldQuery .= " WHERE id = {$selectedContactID};";
+      } else {
+        $cacheFieldQuery .= " ELSE {$greeting}_display END;";
+      }
       if (!empty($contactIds)) {
         // need to update greeting _id field.
         // reset greeting _custom
@@ -1065,10 +1086,10 @@ INNER JOIN civicrm_contact contact_target ON ( contact_target.id = act.contact_i
         }
 
         $queryString = "
-UPDATE civicrm_contact
-SET {$greeting}_id = {$valueID}
-    {$resetCustomGreeting}
-WHERE id IN (" . implode(',', $contactIds) . ")";
+          UPDATE civicrm_contact
+          SET {$greeting}_id = {$valueID}
+              {$resetCustomGreeting}
+          WHERE id IN (" . implode(',', $contactIds) . ")";
         CRM_Core_DAO::executeQuery($queryString);
       }
 
