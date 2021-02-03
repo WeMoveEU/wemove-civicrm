@@ -2677,7 +2677,7 @@ abstract class CRM_Utils_Hook {
    */
   public static function alterUrl(&$url, $params) {
     return self::singleton()
-      ->invoke(2, $url, $params, self::$_nullObject, self::$_nullObject, self::$_nullObject, self::$_nullObject, 'civicrm_alterUrl');
+      ->invoke(['url', 'params'], $url, $params, self::$_nullObject, self::$_nullObject, self::$_nullObject, self::$_nullObject, 'civicrm_alterUrl');
   }
 
   /**
