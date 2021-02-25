@@ -164,6 +164,7 @@ class CRM_Mailing_BAO_TrackableURL extends CRM_Mailing_DAO_TrackableURL {
    *
    * @return string
    */
+  /*
   private static function getTrackerURLForUrlWithTokens($url, $mailing_id, $queue_id) {
 
     // Parse the URL.
@@ -214,6 +215,7 @@ class CRM_Mailing_BAO_TrackableURL extends CRM_Mailing_DAO_TrackableURL {
     }
     return $data;
   }
+  */
 
   /**
    * @param $url
