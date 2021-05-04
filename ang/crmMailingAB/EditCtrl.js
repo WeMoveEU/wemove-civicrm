@@ -141,7 +141,8 @@
       },
       form: function() {
         return $scope.crmMailingAB;
-      }
+      },
+      interval: { save: 15000 }
     });
     $timeout(myAutosave.start);
     $scope.$on('$destroy', myAutosave.stop);
