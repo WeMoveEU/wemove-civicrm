@@ -357,22 +357,40 @@ class CRM_Mailing_BAO_Mailing extends CRM_Mailing_DAO_Mailing {
       $query = $query->where($aclWhere);
     }
 
+    $tmp_directory = self::mysql_server_temp_directory($dao);
+    $tmpfname = self::tmpfile_for_select_into($tmp_directory, $mailingID);
+
     // this mean if dedupe_email AND the mysql 5.7 supports ONLY_FULL_GROUP_BY mode then as
     //  SELECT must contain 'email' column as its used in GROUP BY, so in order to resolve This
     //  here the whole SQL code is wrapped up in FROM table i and not selecting email column for INSERT
     if ($key = array_search('e.email', $selectClause)) {
       unset($selectClause[$key]);
       $sql = $query->toSQL();
-      CRM_Utils_SQL_Select::from("( $sql ) AS i ")
+      $sql = CRM_Utils_SQL_Select::from("( $sql ) AS i ")
         ->select($selectClause)
-        ->insertInto('civicrm_mailing_recipients', ['mailing_id', 'contact_id', $entityColumn])
         ->param('#mailingID', $mailingID)
-        ->execute();
-    }
-    else {
-      $query->insertInto('civicrm_mailing_recipients', ['mailing_id', 'contact_id', $entityColumn])
+        ->toSQL();
+
+      // Error check?
+      $dao = CRM_Core_DAO::executeQuery("$sql INTO OUTFILE '$tmpfname'");
+      $dao = CRM_Core_DAO::executeQuery(
+        "LOAD DATA INFILE '$tmpfname' INTO TABLE civicrm_mailing_recipients" .
+          " (mailing_id, contact_id, $entityColumn)"
+      );
+    } else {
+      $sql = CRM_Utils_SQL_Select::from("( $sql ) AS i ")
+        ->select($selectClause)
         ->param('#mailingID', $mailingID)
-        ->execute();
+        ->toSQL();
+     
+      // Error check?
+      $dao = CRM_Core_DAO::executeQuery("SELECT $sql INTO OUTFILE $tmpfname");
+
+      // TODO: LOAD DATA FROM FILE
+      $dao = CRM_Core_DAO::executeQuery(
+        "LOAD DATA INFILE '$tmpfname' INTO civicrm_mailing_recipients" .
+          " (mailing_id, contact_id, $entityColumn)"
+      );
     }
 
     // if we need to add all emails marked bulk, do it as a post filter
@@ -3116,6 +3134,28 @@ ORDER BY civicrm_mailing.name";
       $r[$type['name']] = $type['name'];
     }
     return $r;
+  }
+
+  /**
+   * Get a safe temporary filename for MySQL SELECT INTO / LOAD DATA statements 
+   *
+   * @return string
+   */
+  private static function tmpfile_for_select_into($tmpDirectory, $mailingID) {
+    $random_bits = bin2hex(random_bytes(5));
+    return "$tmpDirectory/mailing_$mailingID_$random_bits";
+  }
+
+  /**
+   * Get the secure file directory from the MySQL server.
+   *
+   * @return string
+   */
+  private static function mysql_server_temp_directory() {
+    $dao = CRM_Core_DAO::executeQuery('SELECT @@secure_file_priv AS tmp');
+    $dao->fetch();
+    $tmp = $dao->tmp;
+    return $tmp ? $tmp : '/no/such/var/lib/mysql-files';
   }
 
 }
