@@ -366,6 +366,9 @@ class CRM_Mailing_BAO_Mailing extends CRM_Mailing_DAO_Mailing {
       $tmp_directory = self::mysql_server_temp_directory($dao);
       $tmpfname = self::tmpfile_for_select_into($tmp_directory, $mailingID);
       $sql = $query->toSQL();
+      if ($key = array_search('e.email', $selectClause)) {
+        unset($selectClause[$key]);
+      }
       $sql = CRM_Utils_SQL_Select::from("( $sql ) AS i ")
         ->select($selectClause)
         ->param('#mailingID', $mailingID)
