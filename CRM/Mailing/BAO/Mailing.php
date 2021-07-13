@@ -360,7 +360,7 @@ class CRM_Mailing_BAO_Mailing extends CRM_Mailing_DAO_Mailing {
     // Where does this go? =)
     $useSelectInto = True;
 
-    if ($useSelectInto) {
+    if (defined('CIVICRM_MAILING_SELECT_INTO_OUTFILE') && CIVICRM_MAILING_SELECT_INTO_OUTFILE) {
       // Use a server side SELECT INTO OUTFILE and LOAD DATA to avoid locking on the rows
       // selected in a INSERT SELECT statement. 
       $tmp_directory = self::mysql_server_temp_directory($dao);
