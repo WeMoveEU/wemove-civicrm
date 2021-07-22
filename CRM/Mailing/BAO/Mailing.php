@@ -144,12 +144,7 @@ class CRM_Mailing_BAO_Mailing extends CRM_Mailing_DAO_Mailing {
     // there is no need to proceed further if no mailing group is selected to include recipients,
     // but before return clear the mailing recipients populated earlier since as per current params no group is selected
     if (empty($recipientsGroup['Include']) && empty($priorMailingIDs['Include'])) {
-      CRM_Core_DAO::executeQuery(" DELETE FROM civicrm_mailing_recipients WHERE  mailing_id = %1 ", [
-        1 => [
-          $mailingID,
-          'Integer',
-        ],
-      ]);
+      CRM_Mailing_BAO_Recipients::clearRecipients($mailingID);
       return;
     }
 
@@ -401,13 +396,8 @@ class CRM_Mailing_BAO_Mailing extends CRM_Mailing_DAO_Mailing {
     list($aclFrom, $aclWhere) = CRM_Contact_BAO_Contact_Permission::cacheClause();
 
     // clear all the mailing recipients before populating
-    CRM_Core_DAO::executeQuery("DELETE FROM civicrm_mailing_recipients WHERE  mailing_id = %1 ", [
-      1 => [
-        $mailingID,
-        'Integer',
-      ],
-    ]);
-
+    CRM_Mailing_BAO_Recipients::clearRecipients($mailingID);
+    
     $selectClause = ['#mailingID', 'i.contact_id', "i.$entityColumn"];
     // CRM-3975
     $orderBy = ["i.contact_id", "i.$entityColumn"];
@@ -487,6 +477,7 @@ class CRM_Mailing_BAO_Mailing extends CRM_Mailing_DAO_Mailing {
     CRM_Utils_Hook::alterMailingRecipients($mailingObj, $criteria, 'post');
   }
 
+  
   /**
    * Function to retrieve location filter and order by clause later used by SQL query that is used to fetch and include mailing recipients
    *
