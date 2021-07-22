@@ -71,6 +71,7 @@ class CRM_Core_DAO extends DB_DataObject {
     VALUE_SEPARATOR = "",
     BULK_INSERT_COUNT = 200,
     BULK_INSERT_HIGH_COUNT = 200,
+    
     QUERY_FORMAT_WILDCARD = 1,
     QUERY_FORMAT_NO_QUOTES = 2,
 
