@@ -113,6 +113,11 @@ class CRM_Mailing_BAO_Mailing extends CRM_Mailing_DAO_Mailing {
     $mailingObj->id = $mailingID;
     $mailingObj->find(TRUE);
 
+    $mysql_lock_key = "mailing_get_recipients_{$mailingID}";
+    if (! CRM_Core_DAO::singleValueQuery("SELECT GET_LOCK('{$mysql_lock_key}', 0)")) {
+      throw new CRM_Core_Exception("Another process is already getting the recipients for this mailing. $mailingID");
+    }
+
     $mailing = CRM_Mailing_BAO_Mailing::getTableName();
     $contact = CRM_Contact_DAO_Contact::getTableName();
     $isSMSmode = (!CRM_Utils_System::isNull($mailingObj->sms_provider_id));
@@ -375,6 +380,8 @@ class CRM_Mailing_BAO_Mailing extends CRM_Mailing_DAO_Mailing {
     $mailingGroup->reset();
     $excludeTempTable->drop();
     $includedTempTable->drop();
+
+    CRM_Core_DAO::executeQuery("SELECT RELEASE_LOCK('{$mysql_lock_key}')");
 
     CRM_Utils_Hook::alterMailingRecipients($mailingObj, $criteria, 'post');
   }
