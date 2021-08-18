@@ -1,0 +1,57 @@
+name: 'Install WeMove fork of CiviCRM'
+description: 'Install required software and deploy prepared version of CiviCRM fork for WeMove'
+inputs:
+  php_version:
+    description: 'PHP version to use'
+    required: true
+    default: '7.3'
+  drupal_version:
+    description: 'Drupal version to use as CiviCRM container CMS'
+    required: true
+    default: '7.80'
+  civicrm_version:
+    description: 'CiviCRM branch or tag to deploy'
+    required: true
+    default: 'civicrm-5.35.1.patched'
+runs:
+  using: "composite"
+  steps:
+      - name: Set system timezone to Central Europe
+        run: sudo timedatectl set-timezone Europe/Berlin
+        shell: bash
+  
+      - name: Set PHP version
+        run: sudo ln -sf /usr/bin/php${{ inputs.php_version }} /usr/bin/php
+        shell: bash
+
+      - name: Disable sendmail
+        run: sudo ln -sf /bin/true /usr/sbin/sendmail
+        shell: bash
+
+      - name: Install dependencies & tools
+        run: |
+          sudo apt install php${{ inputs.php_version }}-bcmath php${{ inputs.php_version }}-calendar php${{ inputs.php_version }}-ctype php${{ inputs.php_version }}-curl php${{ inputs.php_version }}-dom php${{ inputs.php_version }}-exif php${{ inputs.php_version }}-fileinfo php${{ inputs.php_version }}-ftp php${{ inputs.php_version }}-gd php${{ inputs.php_version }}-gettext php${{ inputs.php_version }}-iconv php${{ inputs.php_version }}-igbinary php${{ inputs.php_version }}-imagick php${{ inputs.php_version }}-intl php${{ inputs.php_version }}-mbstring php${{ inputs.php_version }}-mysqli php${{ inputs.php_version }}-mysqlnd php${{ inputs.php_version }}-opcache php${{ inputs.php_version }}-pdo php${{ inputs.php_version }}-phar php${{ inputs.php_version }}-posix php${{ inputs.php_version }}-readline php${{ inputs.php_version }}-redis php${{ inputs.php_version }}-shmop php${{ inputs.php_version }}-simplexml php${{ inputs.php_version }}-soap php${{ inputs.php_version }}-sockets php${{ inputs.php_version }}-sysvmsg php${{ inputs.php_version }}-sysvsem php${{ inputs.php_version }}-sysvshm php${{ inputs.php_version }}-tokenizer  php${{ inputs.php_version }}-xdebug php${{ inputs.php_version }}-xml php${{ inputs.php_version }}-xmlreader php${{ inputs.php_version }}-xmlwriter php${{ inputs.php_version }}-xsl php${{ inputs.php_version }}-zip
+          sudo curl -LsS https://github.com/drush-ops/drush/releases/download/8.4.5/drush.phar -o /usr/local/bin/drush
+          sudo chmod +x /usr/local/bin/drush
+          sudo curl -LsS https://download.civicrm.org/cv/cv.phar -o /usr/local/bin/cv
+          sudo chmod +x /usr/local/bin/cv
+        shell: bash
+
+      - name: Download Drupal
+        run: drush dl drupal-${{ inputs.drupal_version }} --destination=./ --drupal-project-rename
+        shell: bash
+
+      - name: Checkout CiviCRM
+        run: git clone --branch ${{ inputs.civicrm_version }} https://github.com/WeMoveEU/wemove-civicrm.git ./drupal/sites/all/modules/civicrm
+        shell: bash
+
+      - name: Install DB settings & schemas
+        run: |
+          sudo systemctl start mysql.service
+          mysql -u root -proot -e "CREATE DATABASE drupal;"
+          chmod u+w .
+          drush site-install -y --db-url=mysql://root:root@localhost/drupal
+          chmod u+w .
+          cv core:install --cms-base-url=http://localhost/
+        shell: bash
+        working-directory: drupal/sites/default
