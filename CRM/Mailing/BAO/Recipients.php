@@ -133,7 +133,7 @@ SET mr.mailing_id = $newMailingID
   }
 
   /**
-  * Function to delete from mailing_recipients in chunks to avoid locking 
+  * Function to delete from mailing_recipients in chunks to avoid locking
   * up civicrm_contacts and civicrm_emails. Returns the total count
   * of deleted rows.
   *
@@ -143,12 +143,10 @@ SET mr.mailing_id = $newMailingID
   */
   public static function clearRecipients($mailingID) {
 
-    // print("Let's go \n");
-
     $deleted = true;
     $chunk_size = 10000;
     $total = 0;
- 
+
     while ($deleted) {
       $recipients = new CRM_Mailing_DAO_Recipients();
       $recipients->whereAdd("mailing_id = $mailingID");
@@ -158,10 +156,11 @@ SET mr.mailing_id = $newMailingID
       $total += $rows;
       $deleted = ($rows > 0);
 
-      // print("Rows $rows\n");
-
-      # COMMIT to release row locks on related tables
-      CRM_Core_DAO::executeQuery("COMMIT");
+      // COMMIT to release row locks on related tables,
+      // except in unit tests because it breaks the transactional semantics of Headless tests
+      if (CIVICRM_UF !== 'UnitTests') {
+        CRM_Core_DAO::executeQuery("COMMIT");
+      }
     }
 
     return $total;
