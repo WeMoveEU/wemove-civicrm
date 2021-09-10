@@ -119,11 +119,13 @@ class CRM_Mailing_BAO_Mailing extends CRM_Mailing_DAO_Mailing {
     $mailingObj->id = $mailingID;
     $mailingObj->find(TRUE);
 
-//    $lock_key = "mailing_get_recipients_{$mailingID}";
-    $lock = Civi::lockManager()->acquire("data.mailing.build.{$mailingID}");
+    CRM_Core_Error::debug_log_message("Trying to acquire lock for getRecipients {$mailingID} data.mailing.build.{$mailingID}");
+    $lock = Civi::lockManager()->acquire("data.mailing.build.{$mailingID}", 0);
     if (!$lock->isAcquired()) {
+        CRM_Core_Error::debug_log_message("Failed to aquire the lock for getRecipients {$mailingID} data.mailing.build.{$mailingID}");
       throw new CRM_Core_Exception("Another process is already getting the recipients or queue-ing this mailing. $mailingID");
     }
+    CRM_Core_Error::debug_log_message("Acquired lock for getRecipients {$mailingID} data.mailing.build.{$mailingID}");
   
     $contact = CRM_Contact_DAO_Contact::getTableName();
     $isSMSmode = (!CRM_Utils_System::isNull($mailingObj->sms_provider_id));
@@ -483,6 +485,8 @@ class CRM_Mailing_BAO_Mailing extends CRM_Mailing_DAO_Mailing {
     $lock->release();
 
     CRM_Utils_Hook::alterMailingRecipients($mailingObj, $criteria, 'post');
+
+    CRM_Core_Error::debug_log_message("Done with getRecipients {$mailingID}");
   }
 
   

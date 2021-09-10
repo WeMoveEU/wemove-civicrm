@@ -119,6 +119,8 @@ class CRM_Mailing_BAO_MailingJob extends CRM_Mailing_DAO_MailingJob {
       $job->query($query);
     }
 
+    $pid = getmypid();
+
     while ($job->fetch()) {
       // still use job level lock for each child job
       $lock = Civi::lockManager()->acquire("data.mailing.job.{$job->id}");
@@ -127,10 +129,17 @@ class CRM_Mailing_BAO_MailingJob extends CRM_Mailing_DAO_MailingJob {
       }
 
       // don't queue recipients if a mailing is building the set of it's recipients
-      $recipients_lock = Civi::lockManager()->acquire("data.mailing.build.{$job->mailing_id}");
-      if (!$recipients_lock->isAcquired()) {
+      CRM_Core_Error::debug_log_message("[{$pid}] Checking for rebuilding lock : {$job->id} : data.mailing.build.{$job->mailing_id}");
+      $building_recipients = ! CRM_Core_DAO::singleValueQuery(
+        "SELECT IS_FREE_LOCK( %1 )", 
+        [1 => ["data.mailing.build.{$job->mailing_id}", 'String']]
+      );
+      if ($building_recipients) {
+        CRM_Core_Error::debug_log_message("[{$pid}] Mailing is locked for rebuilding : {$job->id} : data.mailing.build.{$job->mailing_id}");
         continue;
       }
+      CRM_Core_Error::debug_log_message("[{$pid}] Queue-ing a chunk of mailing : {$job->id} : data.mailing.build.{$job->mailing_id}");
+
       // for test jobs we do not change anything, since its on a short-circuit path
       if (empty($testParams)) {
         // we've got the lock, but while we were waiting and processing
@@ -150,7 +159,6 @@ class CRM_Mailing_BAO_MailingJob extends CRM_Mailing_DAO_MailingJob {
         ) {
           // this includes Cancelled and other statuses, CRM-4246
           $lock->release();
-          $recipients_lock->release();
           continue;
         }
       }
@@ -213,7 +221,6 @@ class CRM_Mailing_BAO_MailingJob extends CRM_Mailing_DAO_MailingJob {
 
       // Release the child joblock
       $lock->release();
-      $recipients_lock->release();
 
       if ($testParams) {
         return $isComplete;
