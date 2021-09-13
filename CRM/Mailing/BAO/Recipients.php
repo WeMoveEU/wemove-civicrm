@@ -130,12 +130,21 @@ SET mr.mailing_id = $newMailingID
   * up civicrm_contacts and civicrm_emails. Returns the total count
   * of deleted rows.
   *
-  * @param int $mailingID
+  * @param CRM_Core_Mailing $mailing
   *
   * @return int
   */
-  public static function clearRecipients($mailingID) {
+  public static function clearRecipients($mailingObj) {
+    
+    $mailingID = $mailingObj->id;
 
+    if ($mailingObj->scheduled_date) {
+      throw new CRM_Core_Error(
+        "Refusing to clear recipients for mailing : " .
+        "{$mailingID} scheduled for send {$mailingObj->scheduled_data}"
+      );
+    }
+    
     $deleted = true;
     $chunk_size = 10000;
     $total = 0;
