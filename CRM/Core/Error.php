@@ -567,8 +567,9 @@ class CRM_Core_Error extends PEAR_ErrorStack {
   public static function debug_log_message($message, $out = FALSE, $prefix = '', $priority = NULL) {
     $config = CRM_Core_Config::singleton();
 
+    $pid = getmypid();
     $file_log = self::createDebugLogger($prefix);
-    $file_log->log("$message\n", $priority);
+    $file_log->log("[$pid] $message\n", $priority);
 
     $str = '<p/><code>' . htmlspecialchars($message) . '</code>';
     if ($out && CRM_Core_Permission::check('view debug output')) {
