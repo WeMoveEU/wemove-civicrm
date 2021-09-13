@@ -119,8 +119,6 @@ class CRM_Mailing_BAO_MailingJob extends CRM_Mailing_DAO_MailingJob {
       $job->query($query);
     }
 
-    $pid = getmypid();
-
     while ($job->fetch()) {
       // still use job level lock for each child job
       $lock = Civi::lockManager()->acquire("data.mailing.job.{$job->id}");
@@ -128,17 +126,7 @@ class CRM_Mailing_BAO_MailingJob extends CRM_Mailing_DAO_MailingJob {
         continue;
       }
 
-      // don't queue recipients if a mailing is building the set of it's recipients
-      CRM_Core_Error::debug_log_message("[{$pid}] Checking for rebuilding lock : {$job->id} : data.mailing.build.{$job->mailing_id}");
-      $building_recipients = ! CRM_Core_DAO::singleValueQuery(
-        "SELECT IS_FREE_LOCK( %1 )", 
-        [1 => ["data.mailing.build.{$job->mailing_id}", 'String']]
-      );
-      if ($building_recipients) {
-        CRM_Core_Error::debug_log_message("[{$pid}] Mailing is locked for rebuilding : {$job->id} : data.mailing.build.{$job->mailing_id}");
-        continue;
-      }
-      CRM_Core_Error::debug_log_message("[{$pid}] Queue-ing a chunk of mailing : {$job->id} : data.mailing.build.{$job->mailing_id}");
+      CRM_Core_Error::debug_log_message("Queue-ing a chunk of mailing : {$job->id} : {$job->mailing_id}");
 
       // for test jobs we do not change anything, since its on a short-circuit path
       if (empty($testParams)) {
@@ -331,6 +319,8 @@ class CRM_Mailing_BAO_MailingJob extends CRM_Mailing_DAO_MailingJob {
       $modeClause = 'AND m.sms_provider_id IS NOT NULL';
     }
 
+    CRM_Core_Error::debug_log_message("Getting parent mailing jobs.");
+
     // Select all the mailing jobs that are created from
     // when the mailing is submitted or scheduled.
     $query = "
@@ -354,9 +344,12 @@ class CRM_Mailing_BAO_MailingJob extends CRM_Mailing_DAO_MailingJob {
     // For each of the "Parent Jobs" we find, we split them into
     // X Number of child jobs
     while ($job->fetch()) {
+      CRM_Core_Error::debug_log_message("Getting a lock for splitting {$job->id}");
+
       // still use job level lock for each child job
       $lock = Civi::lockManager()->acquire("data.mailing.job.{$job->id}");
       if (!$lock->isAcquired()) {
+        CRM_Core_Error::debug_log_message("Couldn't get the lock for {$job->id}, will continue");
         continue;
       }
 
@@ -370,10 +363,13 @@ class CRM_Mailing_BAO_MailingJob extends CRM_Mailing_DAO_MailingJob {
         'id',
         TRUE
       );
+      CRM_Core_Error::debug_log_message("Reloaded job status is {$job->status}");
       if ($job->status != 'Scheduled') {
         $lock->release();
         continue;
       }
+
+      CRM_Core_Error::debug_log_message("Opening a TX and splitting the mailing");
 
       $transaction = new CRM_Core_Transaction();
 
@@ -383,6 +379,8 @@ class CRM_Mailing_BAO_MailingJob extends CRM_Mailing_DAO_MailingJob {
       self::create(['id' => $job->id, 'start_date' => date('YmdHis'), 'status' => 'Running']);
       $transaction->commit();
 
+      CRM_Core_Error::debug_log_message("Done - updated parent job to Running");
+      
       // Release the job lock
       $lock->release();
     }
@@ -395,6 +393,8 @@ class CRM_Mailing_BAO_MailingJob extends CRM_Mailing_DAO_MailingJob {
    */
   public function split_job($offset = 200) {
     $recipient_count = CRM_Mailing_BAO_Recipients::mailingSize($this->mailing_id);
+
+    CRM_Core_Error::debug_log_message("Splitting up {$this->id} {$this->mailing_id} found {$recipient_count}");
 
     $jobTable = CRM_Mailing_DAO_MailingJob::getTableName();
 
@@ -445,6 +445,9 @@ VALUES (%1, %2, %3, %4, %5, %6, %7)
       $mailing->getTestRecipients($testParams);
     }
     else {
+
+      CRM_Core_Error::debug_log_message("Queuing up {$this->id} with a chunk of {$this->mailing_id} {$this->job_offset} {$this->job_limit}");
+
       // We are still getting all the recipients from the parent job
       // so we don't mess with the include/exclude logic.
       $recipients = CRM_Mailing_BAO_Recipients::mailingQuery($this->mailing_id, $this->job_offset, $this->job_limit);
@@ -519,6 +522,7 @@ VALUES (%1, %2, %3, %4, %5, %6, %7)
 
       $job = new CRM_Mailing_BAO_MailingJob();
       $job->query($query);
+
       CRM_Core_Error::debug_log_message("Experiment $this->mailing_id waiting for $otherMailingId");
       while (!$job->fetch()) {
         sleep(10);
