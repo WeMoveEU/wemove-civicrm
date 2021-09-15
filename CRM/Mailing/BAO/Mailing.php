@@ -92,6 +92,38 @@ class CRM_Mailing_BAO_Mailing extends CRM_Mailing_DAO_Mailing {
     parent::__construct();
   }
 
+  public function get_caller_info() {
+    $c = '';
+    $file = '';
+    $func = '';
+    $class = '';
+    $trace = debug_backtrace();
+    if (isset($trace[2])) {
+        $file = $trace[1]['file'];
+        $func = $trace[2]['function'];
+        if ((substr($func, 0, 7) == 'include') || (substr($func, 0, 7) == 'require')) {
+            $func = '';
+        }
+    } else if (isset($trace[1])) {
+        $file = $trace[1]['file'];
+        $func = '';
+    }
+    if (isset($trace[3]['class'])) {
+        $class = $trace[3]['class'];
+        $func = $trace[3]['function'];
+        $file = $trace[2]['file'];
+    } else if (isset($trace[2]['class'])) {
+        $class = $trace[2]['class'];
+        $func = $trace[2]['function'];
+        $file = $trace[1]['file'];
+    }
+    if ($file != '') $file = basename($file);
+    $c = $file . ": ";
+    $c .= ($class != '') ? ":" . $class . "->" : "";
+    $c .= ($func != '') ? $func . "(): " : "";
+    return($c);
+  }
+
   /**
    * @deprecated
    *
@@ -119,12 +151,11 @@ class CRM_Mailing_BAO_Mailing extends CRM_Mailing_DAO_Mailing {
     $mailingObj->id = $mailingID;
     $mailingObj->find(TRUE);
 
-    if ($mailingObj->scheduled_date) {
-      throw new CRM_Core_Error(
-        "Refusing to rebuild recipients for mailing : " .
-        "{$mailingID} scheduled for send {$mailingObj->scheduled_data}"
-      );
-    }
+    # if ($mailingObj->scheduled_date != NULL) {
+    #  throw new CRM_Core_Exception(
+    #    "Refusing to rebuild recipients for mailing : " .
+    #    "{$mailingID} scheduled for send {$mailingObj->scheduled_date}"
+    #   );
 
     CRM_Core_Error::debug_log_message("Trying to acquire lock for getRecipients {$mailingID} data.mailing.build.{$mailingID}");
     $lock = Civi::lockManager()->acquire("data.mailing.build.{$mailingID}", 0);
@@ -158,7 +189,7 @@ class CRM_Mailing_BAO_Mailing extends CRM_Mailing_DAO_Mailing {
     // there is no need to proceed further if no mailing group is selected to include recipients,
     // but before return clear the mailing recipients populated earlier since as per current params no group is selected
     if (empty($recipientsGroup['Include']) && empty($priorMailingIDs['Include'])) {
-      CRM_Mailing_BAO_Recipients::clearRecipients($mailingID);
+      CRM_Mailing_BAO_Recipients::clearRecipients($mailingObj);
       $lock->release();
       return;
     }
@@ -411,7 +442,7 @@ class CRM_Mailing_BAO_Mailing extends CRM_Mailing_DAO_Mailing {
     list($aclFrom, $aclWhere) = CRM_Contact_BAO_Contact_Permission::cacheClause();
 
     // clear all the mailing recipients before populating
-    CRM_Mailing_BAO_Recipients::clearRecipients($mailingID);
+    CRM_Mailing_BAO_Recipients::clearRecipients($mailingObj);
     
     $selectClause = ['#mailingID', 'i.contact_id', "i.$entityColumn"];
     // CRM-3975

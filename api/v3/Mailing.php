@@ -27,6 +27,9 @@
  * @throws \Civi\API\Exception\UnauthorizedException
  */
 function civicrm_api3_mailing_create($params) {
+
+  CRM_Core_Error::debug_log_message("CREATING  " . json_encode($params));
+
   if (isset($params['template_options']) && is_array($params['template_options'])) {
     $params['template_options'] = ($params['template_options'] === []) ? '{}' : json_encode($params['template_options']);
   }
