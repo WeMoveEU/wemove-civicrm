@@ -123,10 +123,6 @@ function civicrm_api3_mailing_a_b_submit($params) {
 
   switch ($params['status']) {
     case 'Testing':
-      CRM_Core_Error::debug_log_message("going to distribute a/b mailings");
-      CRM_Mailing_BAO_MailingAB::distributeRecipients($dao);
-      CRM_Core_Error::debug_log_message("distributed - updating (maybe?) a/b mailings");
-
       if (!empty($dao->status) && $dao->status != 'Draft') {
         throw new API_Exception("Cannot transition to state 'Testing'");
       }
@@ -138,6 +134,11 @@ function civicrm_api3_mailing_a_b_submit($params) {
         'id' => $dao->mailing_id_b,
         '_skip_evil_bao_auto_recipients_' => 1,
       ]);
+
+      CRM_Core_Error::debug_log_message(
+        "going to distribute a/b/c recipients: ab test {$dao->id} mailing_a {$dao->mailing_id_a}"
+      );
+      CRM_Mailing_BAO_MailingAB::distributeRecipients($dao);
 
       break;
 

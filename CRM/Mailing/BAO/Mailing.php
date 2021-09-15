@@ -151,11 +151,12 @@ class CRM_Mailing_BAO_Mailing extends CRM_Mailing_DAO_Mailing {
     $mailingObj->id = $mailingID;
     $mailingObj->find(TRUE);
 
-    # if ($mailingObj->scheduled_date != NULL) {
-    #  throw new CRM_Core_Exception(
-    #    "Refusing to rebuild recipients for mailing : " .
-    #    "{$mailingID} scheduled for send {$mailingObj->scheduled_date}"
-    #   );
+    if ($mailingObj->scheduled_date != NULL) {
+      throw new CRM_Core_Exception(
+        "Refusing to rebuild recipients for mailing : " .
+        "{$mailingID} scheduled for send {$mailingObj->scheduled_date}"
+      );
+    }
 
     CRM_Core_Error::debug_log_message("Trying to acquire lock for getRecipients {$mailingID} data.mailing.build.{$mailingID}");
     $lock = Civi::lockManager()->acquire("data.mailing.build.{$mailingID}", 0);
