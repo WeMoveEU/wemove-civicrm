@@ -119,21 +119,26 @@ class CRM_Mailing_BAO_Mailing extends CRM_Mailing_DAO_Mailing {
     $mailingObj->id = $mailingID;
     $mailingObj->find(TRUE);
 
-    if ($mailingObj->scheduled_date) {
-      throw new CRM_Core_Error(
+    if ($mailingObj->scheduled_date != NULL) {
+      
+      CRM_Core_Error::backtrace(
         "Refusing to rebuild recipients for mailing : " .
-        "{$mailingID} scheduled for send {$mailingObj->scheduled_data}"
+          "{$mailingID} scheduled for send {$mailingObj->scheduled_date}",
+        TRUE
+      );
+
+      throw new CRM_Core_Exception(
+        "Refusing to rebuild recipients for mailing : " .
+        "{$mailingID} scheduled for send {$mailingObj->scheduled_date}"
       );
     }
 
-    CRM_Core_Error::debug_log_message("Trying to acquire lock for getRecipients {$mailingID} data.mailing.build.{$mailingID}");
     $lock = Civi::lockManager()->acquire("data.mailing.build.{$mailingID}", 0);
     if (!$lock->isAcquired()) {
-        CRM_Core_Error::debug_log_message("Failed to aquire the lock for getRecipients {$mailingID} data.mailing.build.{$mailingID}");
+      CRM_Core_Error::debug_log_message("Failed to aquire the lock for getRecipients {$mailingID} data.mailing.build.{$mailingID}");
       throw new CRM_Core_Exception("Another process is already getting the recipients for  $mailingID");
     }
-    CRM_Core_Error::debug_log_message("Acquired lock for getRecipients {$mailingID} data.mailing.build.{$mailingID}");
-  
+
     $contact = CRM_Contact_DAO_Contact::getTableName();
     $isSMSmode = (!CRM_Utils_System::isNull($mailingObj->sms_provider_id));
 
@@ -158,7 +163,7 @@ class CRM_Mailing_BAO_Mailing extends CRM_Mailing_DAO_Mailing {
     // there is no need to proceed further if no mailing group is selected to include recipients,
     // but before return clear the mailing recipients populated earlier since as per current params no group is selected
     if (empty($recipientsGroup['Include']) && empty($priorMailingIDs['Include'])) {
-      CRM_Mailing_BAO_Recipients::clearRecipients($mailingID);
+      CRM_Mailing_BAO_Recipients::clearRecipients($mailingObj);
       $lock->release();
       return;
     }
@@ -201,8 +206,6 @@ class CRM_Mailing_BAO_Mailing extends CRM_Mailing_DAO_Mailing {
         ->param('#groups', $recipientsGroup['Exclude'])
         ->toSQL();
 
-      CRM_Core_Error::debug_log_message("Running SELECT INTO for Excludes");
-        
       self::select_into_load_data(
           "_excludes_$mailingID", 
           $sql,
@@ -217,8 +220,6 @@ class CRM_Mailing_BAO_Mailing extends CRM_Mailing_DAO_Mailing {
           ->param('#groups', $excludeSmartGroupIDs)
           ->toSQL();
 
-        CRM_Core_Error::debug_log_message("Running SELECT INTO for excludeSmartGroupIDs");
-        
         self::select_into_load_data(
           "_exclude_smart_groups_$mailingID", 
           $sql,
@@ -234,8 +235,6 @@ class CRM_Mailing_BAO_Mailing extends CRM_Mailing_DAO_Mailing {
         ->param('#mailings', $priorMailingIDs['Exclude'])
         ->toSQL();
 
-        CRM_Core_Error::debug_log_message("Running SELECT INTO for Base");
-        
         self::select_into_load_data(
           "_exclude_prior_$mailingID", 
           $sql,
@@ -250,8 +249,6 @@ class CRM_Mailing_BAO_Mailing extends CRM_Mailing_DAO_Mailing {
         ->where('status = "Removed" AND group_id IN (#groups)')
         ->param('#groups', $recipientsGroup['Base'])
         ->toSQL();
-
-        CRM_Core_Error::debug_log_message("Running SELECT INTO for Base");
 
         self::select_into_load_data(
           "_base_include_$mailingID", 
@@ -318,15 +315,12 @@ class CRM_Mailing_BAO_Mailing extends CRM_Mailing_DAO_Mailing {
         ->param('#mailingID', $mailingID)
         ->toSQL();
 
-        CRM_Core_Error::debug_log_message("Running SELECT INTO for Groups Include");
-
         self::select_into_load_data(
           "_mailing_group_include_$mailingID", 
           $sql,
           $includedTempTablename, 
           ["contact_id", $entityColumn]
         );
-  
 
       }
 
@@ -339,8 +333,6 @@ class CRM_Mailing_BAO_Mailing extends CRM_Mailing_DAO_Mailing {
         ->where('temp.contact_id IS NULL')
         ->param('#mailings', $priorMailingIDs['Include'])
         ->toSQL();
-
-      CRM_Core_Error::debug_log_message("Running SELECT INTO for prior mailings Include");
 
       self::select_into_load_data(
         "_prior_mailing_include_$mailingID", 
@@ -394,7 +386,7 @@ class CRM_Mailing_BAO_Mailing extends CRM_Mailing_DAO_Mailing {
         [$entityColumn, "contact_id"],
         True
        );
-      
+
       $tmpfname = self::tmpfile_for_select_into($mailingID);
 
       // Error check?
@@ -411,8 +403,8 @@ class CRM_Mailing_BAO_Mailing extends CRM_Mailing_DAO_Mailing {
     list($aclFrom, $aclWhere) = CRM_Contact_BAO_Contact_Permission::cacheClause();
 
     // clear all the mailing recipients before populating
-    CRM_Mailing_BAO_Recipients::clearRecipients($mailingID);
-    
+    CRM_Mailing_BAO_Recipients::clearRecipients($mailingObj);
+
     $selectClause = ['#mailingID', 'i.contact_id', "i.$entityColumn"];
     // CRM-3975
     $orderBy = ["i.contact_id", "i.$entityColumn"];
@@ -467,7 +459,7 @@ class CRM_Mailing_BAO_Mailing extends CRM_Mailing_DAO_Mailing {
         ->select($selectClause)
         ->param('#mailingID', $mailingID)
         ->toSQL();
-     
+
       // Error check?
       $dao = CRM_Core_DAO::executeQuery("SELECT $sql INTO OUTFILE $tmpfname");
 
@@ -492,11 +484,8 @@ class CRM_Mailing_BAO_Mailing extends CRM_Mailing_DAO_Mailing {
     $lock->release();
 
     CRM_Utils_Hook::alterMailingRecipients($mailingObj, $criteria, 'post');
-
-    CRM_Core_Error::debug_log_message("Done with getRecipients {$mailingID}");
   }
 
-  
   /**
    * Function to retrieve location filter and order by clause later used by SQL query that is used to fetch and include mailing recipients
    *

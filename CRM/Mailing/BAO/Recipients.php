@@ -146,7 +146,7 @@ SET mr.mailing_id = $newMailingID
     $mailingID = $mailingObj->id;
 
     if ($mailingObj->scheduled_date) {
-      throw new CRM_Core_Error(
+      throw new CRM_Core_Exception(
         "Refusing to clear recipients for mailing : " .
         "{$mailingID} scheduled for send {$mailingObj->scheduled_data}"
       );
