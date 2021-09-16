@@ -126,8 +126,6 @@ class CRM_Mailing_BAO_MailingJob extends CRM_Mailing_DAO_MailingJob {
         continue;
       }
 
-      CRM_Core_Error::debug_log_message("Queue-ing a chunk of mailing : {$job->id} : {$job->mailing_id}");
-
       // for test jobs we do not change anything, since its on a short-circuit path
       if (empty($testParams)) {
         // we've got the lock, but while we were waiting and processing
@@ -319,8 +317,6 @@ class CRM_Mailing_BAO_MailingJob extends CRM_Mailing_DAO_MailingJob {
       $modeClause = 'AND m.sms_provider_id IS NOT NULL';
     }
 
-    CRM_Core_Error::debug_log_message("Getting parent mailing jobs.");
-
     // Select all the mailing jobs that are created from
     // when the mailing is submitted or scheduled.
     $query = "
@@ -344,12 +340,10 @@ class CRM_Mailing_BAO_MailingJob extends CRM_Mailing_DAO_MailingJob {
     // For each of the "Parent Jobs" we find, we split them into
     // X Number of child jobs
     while ($job->fetch()) {
-      CRM_Core_Error::debug_log_message("Getting a lock for splitting {$job->id}");
 
       // still use job level lock for each child job
       $lock = Civi::lockManager()->acquire("data.mailing.job.{$job->id}");
       if (!$lock->isAcquired()) {
-        CRM_Core_Error::debug_log_message("Couldn't get the lock for {$job->id}, will continue");
         continue;
       }
 
@@ -363,13 +357,13 @@ class CRM_Mailing_BAO_MailingJob extends CRM_Mailing_DAO_MailingJob {
         'id',
         TRUE
       );
-      CRM_Core_Error::debug_log_message("Reloaded job status is {$job->status}");
+
       if ($job->status != 'Scheduled') {
         $lock->release();
         continue;
       }
 
-      CRM_Core_Error::debug_log_message("Opening a TX and splitting the mailing");
+      CRM_Core_Error::debug_log_message("Handling MailingJob: {$job->id} Mailing: {$job->mailing_id}");
 
       $transaction = new CRM_Core_Transaction();
 
@@ -378,8 +372,6 @@ class CRM_Mailing_BAO_MailingJob extends CRM_Mailing_DAO_MailingJob {
       // Update the status of the parent job
       self::create(['id' => $job->id, 'start_date' => date('YmdHis'), 'status' => 'Running']);
       $transaction->commit();
-
-      CRM_Core_Error::debug_log_message("Done - updated parent job to Running");
       
       // Release the job lock
       $lock->release();
@@ -394,8 +386,8 @@ class CRM_Mailing_BAO_MailingJob extends CRM_Mailing_DAO_MailingJob {
   public function split_job($offset = 200) {
     $recipient_count = CRM_Mailing_BAO_Recipients::mailingSize($this->mailing_id);
 
-    CRM_Core_Error::debug_log_message("Splitting up {$this->id} {$this->mailing_id} found {$recipient_count}");
-
+    CRM_Core_Error::debug_log_message("Splitting up mailing: Job {$this->id} Mailing {$this->mailing_id} Recipients {$recipient_count}");
+ 
     $jobTable = CRM_Mailing_DAO_MailingJob::getTableName();
 
     $dao = new CRM_Core_DAO();
@@ -446,7 +438,7 @@ VALUES (%1, %2, %3, %4, %5, %6, %7)
     }
     else {
 
-      CRM_Core_Error::debug_log_message("Queuing up {$this->id} with a chunk of {$this->mailing_id} {$this->job_offset} {$this->job_limit}");
+      CRM_Core_Error::debug_log_message("Queuing for mailing {$this->mailing_id} offset: {$this->job_offset} limit: {$this->job_limit}");
 
       // We are still getting all the recipients from the parent job
       // so we don't mess with the include/exclude logic.
