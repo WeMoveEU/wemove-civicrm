@@ -120,6 +120,13 @@ class CRM_Mailing_BAO_Mailing extends CRM_Mailing_DAO_Mailing {
     $mailingObj->find(TRUE);
 
     if ($mailingObj->scheduled_date != NULL) {
+      
+      CRM_Core_Error::backtrace(
+        "Refusing to rebuild recipients for mailing : " .
+          "{$mailingID} scheduled for send {$mailingObj->scheduled_date}",
+        TRUE
+      );
+
       throw new CRM_Core_Exception(
         "Refusing to rebuild recipients for mailing : " .
         "{$mailingID} scheduled for send {$mailingObj->scheduled_date}"
