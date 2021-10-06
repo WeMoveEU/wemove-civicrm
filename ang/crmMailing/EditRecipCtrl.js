@@ -52,6 +52,8 @@
     // We monitor four fields -- use debounce so that changes across the
     // four fields can settle-down before AJAX.
     var refreshRecipients = _.debounce(function() {
+      $scope.recipients = 0;
+      return;
       $scope.$apply(function() {
         if (!$scope.mailing) {
           return;
