@@ -12,10 +12,20 @@
 * git add *
 * git commit -m "CiviCRM $VERSION Vanilla"
 * git push -u origin civicrm-$VERSION.vanilla
+* git fetch upstream
+* git checkout $VERSION # to get the source of new version with unpackaged files
+* mv tests tests.bak
+* mv sql sql.bak
+* git checkout tests sql
 * git checkout -b civicrm-$VERSION.patched
-* git push -u origin civicrm-$VERSION.patched
-* git branch -vv
+* mv tests.bak tests
+* rm -r sql
+* mv sql.bak sql
+* git checkout sql
+* git add tests sql
+* git commit -m "Add source tests folder and sql contents used for tests (used by extensions unit tests)"
 * \# add patches, look at below...
+* git push -u origin civicrm-$VERSION.patched
 
 # How to add patches to new clean patched branch
 
