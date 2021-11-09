@@ -991,7 +991,12 @@ INNER JOIN civicrm_contact contact_target ON ( contact_target.id = act.contact_i
     }
     // perform token replacement and build update SQL
     $contactIds = [];
-    $cacheFieldQuery = "UPDATE civicrm_contact SET {$greeting}_display = CASE id ";
+    $cacheFieldQuery = "UPDATE civicrm_contact SET {$greeting}_display = ";
+    //For a single contact, use standard UPDATE SET column = $value WHERE id = $id to avoid a table scan
+    if (!$selectedContactID) {
+      $cacheFieldQuery .= "CASE id ";
+    }
+
     foreach ($greetingDetails as $contactID => $contactDetails) {
       if (!$processAll &&
         !array_key_exists($contactID, $filterContactFldIds)
@@ -1015,14 +1020,21 @@ INNER JOIN civicrm_contact contact_target ON ( contact_target.id = act.contact_i
 
       self::processGreetingTemplate($greetingString, $contactDetails, $contactID, 'CRM_UpdateGreeting');
       $greetingString = CRM_Core_DAO::escapeString($greetingString);
-      $cacheFieldQuery .= " WHEN {$contactID} THEN '{$greetingString}' ";
+      if ($selectedContactID) {
+        $cacheFieldQuery .= "'{$greetingString}' ";
+      } else {
+        $cacheFieldQuery .= " WHEN {$contactID} THEN '{$greetingString}' ";
+      }
 
       $allContactIds[] = $contactID;
     }
 
     if (!empty($allContactIds)) {
-      $cacheFieldQuery .= " ELSE {$greeting}_display
-                              END;";
+      if ($selectedContactID) {
+        $cacheFieldQuery .= " WHERE id = {$selectedContactID};";
+      } else {
+        $cacheFieldQuery .= " ELSE {$greeting}_display END;";
+      }
       if (!empty($contactIds)) {
         // need to update greeting _id field.
         // reset greeting _custom
@@ -1032,10 +1044,10 @@ INNER JOIN civicrm_contact contact_target ON ( contact_target.id = act.contact_i
         }
 
         $queryString = "
-UPDATE civicrm_contact
-SET {$greeting}_id = {$valueID}
-    {$resetCustomGreeting}
-WHERE id IN (" . implode(',', $contactIds) . ")";
+          UPDATE civicrm_contact
+          SET {$greeting}_id = {$valueID}
+              {$resetCustomGreeting}
+          WHERE id IN (" . implode(',', $contactIds) . ")";
         CRM_Core_DAO::executeQuery($queryString);
       }
 
