@@ -1859,7 +1859,7 @@ input.crm-form-entityref {
 
 .crm-container .crm-submit-buttons,
 .crm-container .action-link {
-  height: 27px;
+  /* height: 27px; -- let my buttons be free */
   margin: 4px 0 4px 2px;
 }
 
