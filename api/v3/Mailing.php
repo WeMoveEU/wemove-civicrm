@@ -309,11 +309,11 @@ function civicrm_api3_mailing_submit($params) {
     $updateParams['approval_note'] = $params['approval_note'];
   }
 
-  if (isset($params['_skip_evil_bao_auto_recipients_'])) {
-    $updateParams['_skip_evil_bao_auto_recipients_'] = $params['_skip_evil_bao_auto_recipients_'];
+  // Unless the caller does not want to, compute recipients one last time before the scheduled_date is saved
+  // and prevent 'create' from attempting a computation
+  if (!isset($params['_skip_evil_bao_auto_recipients_'])) {
+    CRM_Mailing_BAO_Mailing::getRecipients($updateParams['id']);
   }
-
-  // create call getRecipients down the line so skip it here
   $updateParams['_skip_evil_bao_auto_recipients_'] = 1;
 
   $updateParams['options']['reload'] = 1;
