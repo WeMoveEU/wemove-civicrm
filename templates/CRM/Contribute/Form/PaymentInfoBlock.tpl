@@ -25,7 +25,7 @@
         <td>{$payment.financial_type}</td>
         <td>{$payment.payment_instrument}{if $payment.check_number} (#{$payment.check_number}){/if}</td>
         <td>{$payment.receive_date|crmDate}</td>
-        <td>{$payment.trxn_id}</td>
+        <td class="transaction-id">{$payment.trxn_id}</td>
         <td>{$payment.status}</td>
         <td>{$payment.action}</td>
       </tr>
