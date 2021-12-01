@@ -192,7 +192,7 @@
   {if $trxn_id}
     <tr>
       <td class="label">{ts}Transaction ID{/ts}</td>
-      <td>{$trxn_id}</td>
+      <td class="transaction-id">{$trxn_id}</td>
     </tr>
   {/if}
 
