@@ -83,8 +83,8 @@ class CRM_Mailing_BAO_Mailing extends CRM_Mailing_DAO_Mailing {
   private $_domain = NULL;
 
   /**
-   * Cached 
-   * 
+   * Cached
+   *
    */
   private $mysql_temp_directory = NULL;
 
@@ -123,7 +123,7 @@ class CRM_Mailing_BAO_Mailing extends CRM_Mailing_DAO_Mailing {
     $mailingObj->find(TRUE);
 
     if ($mailingObj->scheduled_date != NULL) {
-      
+
       CRM_Core_Error::backtrace(
         "Refusing to rebuild recipients for mailing : " .
           "{$mailingID} scheduled for send {$mailingObj->scheduled_date}",
@@ -154,6 +154,7 @@ class CRM_Mailing_BAO_Mailing extends CRM_Mailing_DAO_Mailing {
       ->param('!groupTableName', CRM_Contact_BAO_Group::getTableName())
       ->param('#mailing_id', $mailingID)
       ->execute();
+
     while ($dao->fetch()) {
       if ($dao->entity_table == 'civicrm_mailing') {
         $priorMailingIDs[$dao->group_type] = explode(',', $dao->group_ids);
@@ -210,9 +211,9 @@ class CRM_Mailing_BAO_Mailing extends CRM_Mailing_DAO_Mailing {
         ->toSQL();
 
       self::select_into_load_data(
-          "_excludes_$mailingID", 
+          "_excludes_$mailingID",
           $sql,
-          $excludeTempTablename, 
+          $excludeTempTablename,
           ["contact_id"]
         );
 
@@ -224,9 +225,9 @@ class CRM_Mailing_BAO_Mailing extends CRM_Mailing_DAO_Mailing {
           ->toSQL();
 
         self::select_into_load_data(
-          "_exclude_smart_groups_$mailingID", 
+          "_exclude_smart_groups_$mailingID",
           $sql,
-          $excludeTempTablename, 
+          $excludeTempTablename,
           ["contact_id"]
         );
       }
@@ -239,9 +240,9 @@ class CRM_Mailing_BAO_Mailing extends CRM_Mailing_DAO_Mailing {
         ->toSQL();
 
         self::select_into_load_data(
-          "_exclude_prior_$mailingID", 
+          "_exclude_prior_$mailingID",
           $sql,
-          $excludeTempTablename, 
+          $excludeTempTablename,
           ["contact_id"]
         );
     }
@@ -254,9 +255,9 @@ class CRM_Mailing_BAO_Mailing extends CRM_Mailing_DAO_Mailing {
         ->toSQL();
 
         self::select_into_load_data(
-          "_base_include_$mailingID", 
+          "_base_include_$mailingID",
           $sql,
-          $excludeTempTablename, 
+          $excludeTempTablename,
           ["contact_id"]
         );
     }
@@ -319,9 +320,9 @@ class CRM_Mailing_BAO_Mailing extends CRM_Mailing_DAO_Mailing {
         ->toSQL();
 
         self::select_into_load_data(
-          "_mailing_group_include_$mailingID", 
+          "_mailing_group_include_$mailingID",
           $sql,
-          $includedTempTablename, 
+          $includedTempTablename,
           ["contact_id", $entityColumn]
         );
 
@@ -338,9 +339,9 @@ class CRM_Mailing_BAO_Mailing extends CRM_Mailing_DAO_Mailing {
         ->toSQL();
 
       self::select_into_load_data(
-        "_prior_mailing_include_$mailingID", 
-        $sql, 
-        $includedTempTablename, 
+        "_prior_mailing_include_$mailingID",
+        $sql,
+        $includedTempTablename,
         ["contact_id", $entityColumn]
       );
     }
@@ -361,9 +362,9 @@ class CRM_Mailing_BAO_Mailing extends CRM_Mailing_DAO_Mailing {
         ->toSQL();
 
       self::select_into_load_data(
-        "_prior_mailing_include_smart_groups_$mailingID", 
+        "_prior_mailing_include_smart_groups_$mailingID",
         $sql,
-        $includedTempTablename, 
+        $includedTempTablename,
         ["contact_id", $entityColumn]
        );
     }
@@ -384,8 +385,8 @@ class CRM_Mailing_BAO_Mailing extends CRM_Mailing_DAO_Mailing {
 
       self::select_into_load_data(
         "includes_$mailingID",
-        $customSQL, 
-        $includedTempTablename, 
+        $customSQL,
+        $includedTempTablename,
         [$entityColumn, "contact_id"],
         True
        );
@@ -1780,6 +1781,38 @@ ORDER BY   civicrm_email.is_bulkmail DESC
     // but for now only CRUD is available via v4 api.
     if (($params['version'] ?? '') !== 4) {
       $params = self::doSubmitActions($params, $mailing);
+    }
+
+    // Create parent job if not yet created.
+    // Condition on the existence of a scheduled date.
+    if (!empty($params['scheduled_date']) && $params['scheduled_date'] != 'null' && empty($params['_skip_evil_bao_auto_schedule_'])) {
+      $job = new CRM_Mailing_BAO_MailingJob();
+      $job->mailing_id = $mailing->id;
+      // If we are creating a new Completed mailing (e.g. import from another system) set the job to completed.
+      // Keeping former behaviour when an id is present is precautionary and may warrant reconsideration later.
+      $job->status = ((empty($params['is_completed']) || !empty($params['id'])) ? 'Scheduled' : 'Complete');
+      $job->is_test = 0;
+
+      if (!$job->find(TRUE)) {
+        // Don't schedule job until we populate the recipients.
+        $job->scheduled_date = NULL;
+        $job->save();
+      }
+      // Schedule the job now that it has recipients.
+      $job->scheduled_date = $params['scheduled_date'];
+      $job->save();
+    }
+
+    // Let callers tell us not to rebuild - the existing code
+    // gets it wrong all the time. It's possible we need to check
+    // this earlier. Only God knows.
+    if ($params['skip_recipients']) {
+      return $mailing;
+    }
+
+    // Populate the recipients.
+    if (empty($params['_skip_evil_bao_auto_recipients_'])) {
+      self::getRecipients($mailing->id);
     }
 
     return $mailing;
@@ -3240,7 +3273,7 @@ ORDER BY civicrm_mailing.name";
 
 
   /**
-   * Get a safe temporary filename for MySQL SELECT INTO / LOAD DATA statements 
+   * Get a safe temporary filename for MySQL SELECT INTO / LOAD DATA statements
    *
    * @return string
    */
