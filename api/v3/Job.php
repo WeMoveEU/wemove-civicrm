@@ -702,10 +702,11 @@ function civicrm_api3_job_group_rebuild($params) {
 
   $limit = $params['limit'] ?? 0;
 
-  CRM_Contact_BAO_GroupContactCache::loadAll(NULL, $limit);
+  $log = CRM_Contact_BAO_GroupContactCache::loadAll(NULL, $limit);
+
   $lock->release();
 
-  return civicrm_api3_create_success();
+  return civicrm_api3_create_success([ "log" =>  $log ]);
 }
 
 /**
