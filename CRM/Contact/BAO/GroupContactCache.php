@@ -130,14 +130,17 @@ AND (
       $groupIDs = (array) $groupIDs;
     }
 
+    $log = '';
+
     // Treat the default help text in Scheduled Jobs as equivalent to no limit.
     $limit = (int) $limit;
     $processGroupIDs = self::getGroupsNeedingRefreshing($groupIDs, $limit);
 
     if (!empty($processGroupIDs)) {
-      self::add($processGroupIDs);
+      $log .= self::add($processGroupIDs);
     }
-    return TRUE;
+
+    return $log;
   }
 
   /**
@@ -148,12 +151,22 @@ AND (
   public static function add($groupIDs) {
     $groupIDs = (array) $groupIDs;
 
+    $log = '';
+
     foreach ($groupIDs as $groupID) {
       // first delete the current cache
       $params = [['group', 'IN', [$groupID], 0, 0]];
-      // the below call updates the cache table as a byproduct of the query
-      CRM_Contact_BAO_Query::apiQuery($params, ['contact_id'], NULL, NULL, 0, 0, FALSE);
+
+      try {
+        // the below call updates the cache table as a byproduct of the query
+        CRM_Contact_BAO_Query::apiQuery($params, ['contact_id'], NULL, NULL, 0, 0, FALSE);
+        $log .= "\nUpdated smart group: $groupID";
+      } catch (Exception $e) {
+        $log .= "\nError trying to rebuild smart group: $groupID: $e";
+      }
     }
+
+    return $log;
   }
 
   /**
