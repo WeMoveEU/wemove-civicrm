@@ -1785,7 +1785,7 @@ ORDER BY   civicrm_email.is_bulkmail DESC
     // Let callers tell us not to rebuild - the existing code
     // gets it wrong all the time. It's possible we need to check
     // this earlier. Only God knows.
-    if ($params['skip_recipients']) {
+    if (CRM_Utils_Array::value('skip_recipients', $params, FALSE)) {
       return $mailing;
     }
 
