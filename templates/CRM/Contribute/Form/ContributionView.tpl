@@ -199,14 +199,14 @@
   {if $invoice_number}
     <tr>
       <td class="label">{ts}Invoice Number{/ts}</td>
-      <td>{$invoice_number}&nbsp;</td>
+      <td class="transaction-id">{$invoice_number}&nbsp;</td>
     </tr>
   {/if}
 
   {if $invoice_id}
     <tr>
       <td class="label">{ts}Invoice Reference{/ts}</td>
-      <td>{$invoice_id}&nbsp;</td>
+      <td class="transaction-id">{$invoice_id}&nbsp;</td>
     </tr>
   {/if}
 
