@@ -17,7 +17,7 @@
 * mv tests tests.bak
 * mv sql sql.bak
 * git checkout tests sql
-* git checkout -b civicrm-$VERSION.patched
+* git checkout -b civicrm-$VERSION.patched civicrm-$VERSION.vanilla
 * mv tests.bak tests
 * rm -r sql
 * mv sql.bak sql
