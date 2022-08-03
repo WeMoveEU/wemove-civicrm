@@ -12,7 +12,7 @@ inputs:
   civicrm_version:
     description: 'CiviCRM branch or tag to deploy'
     required: true
-    default: 'civicrm-5.42.1.patched'
+    default: 'civicrm-5.49.4.patched'
 runs:
   using: "composite"
   steps:
