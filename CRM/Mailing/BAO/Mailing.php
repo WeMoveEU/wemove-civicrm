@@ -2517,7 +2517,7 @@ LEFT JOIN civicrm_mailing_group g ON g.mailing_id   = m.id
                         MIN($job.start_date) as start_date,
                         MAX($job.end_date) as end_date
             FROM        $mailing
-            LEFT JOIN   $job ON ( $job.mailing_id = $mailing.id AND $job.is_test = 0 AND $job.parent_id IS NULL )
+            LEFT JOIN   $job ON ( $job.mailing_id = $mailing.id )
             LEFT JOIN   civicrm_contact createdContact ON ( civicrm_mailing.created_id = createdContact.id )
             LEFT JOIN   civicrm_contact scheduledContact ON ( civicrm_mailing.scheduled_id = scheduledContact.id )
             WHERE       $mailingACL $additionalClause";
