@@ -744,12 +744,12 @@ class CRM_Activity_DAO_Activity extends CRM_Core_DAO {
             'type' => 'EntityRef',
             'label' => ts("Campaign"),
           ],
-          'pseudoconstant' => [
+          /* 'pseudoconstant' => [
             'table' => 'civicrm_campaign',
             'keyColumn' => 'id',
             'labelColumn' => 'title',
             'prefetch' => 'FALSE',
-          ],
+          ], */
           'add' => '3.4',
         ],
         'activity_engagement_level' => [
