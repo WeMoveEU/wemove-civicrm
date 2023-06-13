@@ -200,7 +200,7 @@ class CRM_Mailing_Selector_Browse extends CRM_Core_Selector_Base implements CRM_
     $query = "
    SELECT  COUNT( DISTINCT $mailing.id ) as count
      FROM  $mailing
-LEFT JOIN  $job ON ( $mailing.id = $job.mailing_id AND civicrm_mailing_job.is_test = 0 AND civicrm_mailing_job.parent_id IS NULL )
+LEFT JOIN  $job USE INDEX (FK_civicrm_mailing_job_mailing_id) ON ( $mailing.id = $job.mailing_id AND civicrm_mailing_job.is_test = 0 AND civicrm_mailing_job.parent_id IS NULL )
 LEFT JOIN  civicrm_contact createdContact   ON ( $mailing.created_id   = createdContact.id )
 LEFT JOIN  civicrm_contact scheduledContact ON ( $mailing.scheduled_id = scheduledContact.id )
     WHERE  $whereClause";
